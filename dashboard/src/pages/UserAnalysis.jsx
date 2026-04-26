@@ -20,31 +20,34 @@ export function UserAnalysis({ data, onBack }) {
     };
 
     return (
-        <div className="max-w-7xl mx-auto space-y-8 pb-20 lowercase px-4">
+        <div className="max-w-7xl mx-auto space-y-12 pb-20 lowercase px-4 relative">
+            
+            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-[#6C5CE7]/5 blur-[100px] rounded-full -z-10" />
+
             {/* Unified Header */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div className="space-y-2">
                     <div className="flex items-center gap-4">
                         <button 
                             onClick={onBack}
-                            className="bg-[#6C5CE7]/10 p-3 rounded-xl text-[#6C5CE7] hover:bg-[#6C5CE7] hover:text-white transition-all"
+                            className="bg-[#6C5CE7]/10 p-3 rounded-xl text-[#6C5CE7] hover:bg-[#6C5CE7] hover:text-white transition-all shadow-sm"
                         >
                             <ArrowLeft size={24} />
                         </button>
-                        <h2 className="text-4xl font-black text-[#2D3436] tracking-tighter leading-none">analisis pengguna.</h2>
+                        <h2 className="text-4xl font-black text-[#2D3436] tracking-tighter leading-none">user analysis.</h2>
                     </div>
                     <p className="text-slate-400 text-sm font-medium pl-16">hasil deep-scan perilaku komprehensif.</p>
                 </div>
-                <div className="flex items-center gap-3 bg-white border border-black/5 px-4 py-2 rounded-xl shadow-sm">
+                <div className="flex items-center gap-3 bg-white border border-black/5 px-5 py-3 rounded-xl shadow-sm self-start md:self-end">
                     <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-xs font-black text-slate-400 uppercase tracking-widest">laporan final</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">report finalized</span>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
                 {/* Profile Overview Sidebar */}
                 <div className="lg:col-span-4 space-y-8">
-                    <GlassCard className="p-8 border-none shadow-sm bg-white overflow-hidden relative">
+                    <GlassCard className="p-8 border-none shadow-sm bg-white overflow-hidden relative rounded-[2.5rem]">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-[#6C5CE7]/5 rounded-full -translate-y-1/2 translate-x-1/2" />
                         
                         <div className="flex flex-col items-center text-center relative z-10">
@@ -63,20 +66,20 @@ export function UserAnalysis({ data, onBack }) {
                             <p className="text-slate-400 text-base font-medium mb-8">{user.handle}</p>
 
                             <div className="w-full grid grid-cols-2 gap-5">
-                                <div className="bg-slate-50 p-4 rounded-2xl border border-black/5">
-                                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1.5">total tweet</p>
-                                    <p className="text-2xl font-black text-[#2D3436]">{summary.total_tweets}</p>
+                                <div className="bg-slate-50 p-5 rounded-2xl border border-black/5">
+                                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-2 leading-none">total tweets</p>
+                                    <p className="text-2xl font-black text-[#2D3436] leading-none">{summary.total_tweets}</p>
                                 </div>
-                                <div className="bg-slate-50 p-4 rounded-2xl border border-black/5">
-                                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1.5">indikasi</p>
-                                    <p className="text-2xl font-black text-rose-500">{summary.indicated_tweets}</p>
+                                <div className="bg-slate-50 p-5 rounded-2xl border border-black/5">
+                                    <p className="text-[10px] font-black text-[#6C5CE7] uppercase tracking-widest mb-2 leading-none">avg confidence</p>
+                                    <p className="text-2xl font-black text-[#2D3436] leading-none">{(summary.average_severity * 100).toFixed(0)}%</p>
                                 </div>
                             </div>
                         </div>
                     </GlassCard>
 
-                    <GlassCard className="p-10 border-none shadow-xl bg-[#2D3436] text-white flex flex-col items-center text-center">
-                        <p className="text-xs text-white/40 font-bold uppercase tracking-[0.2em] mb-8">indeks keparahan</p>
+                    <GlassCard className="p-10 border-none shadow-xl bg-[#2D3436] text-white flex flex-col items-center text-center rounded-[2.5rem]">
+                        <p className="text-[10px] text-white/40 font-black uppercase tracking-[0.2em] mb-8">confidence index</p>
                         <CircularMeter 
                             value={summary.average_severity * 100} 
                             size={200} 
@@ -89,8 +92,8 @@ export function UserAnalysis({ data, onBack }) {
                         />
                         <div className="mt-10 space-y-3">
                             <p className="text-4xl font-black tracking-tighter">{(summary.average_severity * 100).toFixed(1)}%</p>
-                            <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/10 border border-white/10">
-                                <span className="text-xs font-black uppercase tracking-widest">{summary.status === 'NORMAL' ? 'STABIL' : summary.status}</span>
+                            <div className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-white/10 border border-white/10">
+                                <span className="text-[10px] font-black uppercase tracking-widest">{summary.status === 'NORMAL' ? 'STABIL' : summary.status}</span>
                             </div>
                         </div>
                     </GlassCard>
@@ -100,7 +103,7 @@ export function UserAnalysis({ data, onBack }) {
                 <div className="lg:col-span-8 space-y-8">
                     <div className="flex items-center justify-between px-2">
                         <h3 className="text-xl font-black text-[#2D3436] flex items-center gap-3 uppercase tracking-tighter">
-                            <MessageSquare size={22} className="text-slate-400" /> feed analisis
+                            <MessageSquare size={22} className="text-slate-400" /> analysis feed
                         </h3>
                     </div>
 
@@ -110,22 +113,20 @@ export function UserAnalysis({ data, onBack }) {
                                 <div className="flex justify-between gap-10">
                                     <div className="flex-1 space-y-6">
                                         <div className="relative">
-                                            <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#74B9FF]/30 rounded-full" />
-                                            <p className="text-slate-500 text-lg pl-8 py-0.5 leading-relaxed italic line-clamp-3">
+                                            <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#6C5CE7]/20 rounded-full" />
+                                            <p className="text-slate-600 text-lg pl-8 py-0.5 leading-relaxed italic line-clamp-3">
                                                 "{item.text}"
                                             </p>
                                         </div>
 
-                                        <div className="flex items-center gap-4 text-xs text-slate-400 font-bold uppercase tracking-widest pt-2">
-                                            <div className="flex items-center gap-2"><Clock size={14} /><span>{item.date ? new Date(item.date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : 'waktu tidak diketahui'}</span></div>
-                                            <div className="w-1.5 h-1.5 rounded-full bg-slate-200" />
-                                            <span className="bg-slate-50 px-3 py-1 rounded-lg border border-black/5">pola terdeteksi</span>
+                                        <div className="flex items-center gap-4 text-[10px] text-slate-400 font-black uppercase tracking-widest pt-2">
+                                            <div className="flex items-center gap-2"><Clock size={14} className="text-[#6C5CE7]/60" /><span>{item.date ? new Date(item.date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : 'waktu tidak diketahui'}</span></div>
                                         </div>
                                     </div>
 
-                                    <div className="text-center shrink-0 min-w-[100px] flex flex-col justify-center border-l border-black/5 pl-8">
-                                        <p className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-1">risiko</p>
-                                        <p className={`font-black text-3xl ${getRiskColor(item.score)}`}>{(item.score * 100).toFixed(0)}%</p>
+                                    <div className="text-center shrink-0 min-w-[120px] flex flex-col justify-center border-l border-black/5 pl-8">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">confidence score</p>
+                                        <p className={`text-4xl font-black ${getRiskColor(item.score)}`}>{(item.score * 100).toFixed(0)}%</p>
                                     </div>
                                 </div>
                             </div>

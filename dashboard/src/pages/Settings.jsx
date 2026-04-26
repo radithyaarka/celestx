@@ -32,7 +32,7 @@ export function Settings() {
         <div className="space-y-2">
           <div className="flex items-center gap-4">
              <div className="bg-[#6C5CE7]/10 p-3 rounded-xl text-[#6C5CE7]"><SettingsIcon size={24} /></div>
-             <h2 className="text-4xl font-black text-[#2D3436] tracking-tighter leading-none">pengaturan.</h2>
+             <h2 className="text-4xl font-black text-[#2D3436] tracking-tighter leading-none">settings.</h2>
           </div>
           <p className="text-slate-400 text-sm font-medium">konfigurasi mesin deteksi dan preferensi ruang kerja anda.</p>
         </div>
@@ -49,7 +49,7 @@ export function Settings() {
                                 <Zap size={22} />
                             </div>
                             <div>
-                                <p className="font-black text-lg text-[#2D3436]">interval auto-scan</p>
+                                <p className="font-black text-lg text-[#2D3436]">auto-scan interval</p>
                                 <p className="text-xs text-slate-400 font-medium">seberapa sering skrip latar belakang memeriksa timeline anda.</p>
                             </div>
                         </div>
@@ -60,7 +60,7 @@ export function Settings() {
                                 onChange={(e) => setSettings({...settings, scanInterval: parseInt(e.target.value)})}
                                 className="w-20 bg-slate-50 border border-black/5 rounded-xl px-4 py-3 text-center font-bold text-[#6C5CE7] focus:outline-none focus:ring-2 focus:ring-[#6C5CE7]/20 text-sm"
                             />
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">detik</span>
+                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">sec</span>
                         </div>
                     </div>
 
@@ -71,7 +71,7 @@ export function Settings() {
                                 <Bell size={22} />
                             </div>
                             <div>
-                                <p className="font-black text-lg text-[#2D3436]">notifikasi sistem</p>
+                                <p className="font-black text-lg text-[#2D3436]">system notifications</p>
                                 <p className="text-xs text-slate-400 font-medium">dapatkan peringatan desktop saat risiko terdeteksi.</p>
                             </div>
                         </div>
@@ -90,7 +90,7 @@ export function Settings() {
                                 <Globe size={22} />
                             </div>
                             <div>
-                                <p className="font-black text-lg text-[#2D3436]">url backend fastapi</p>
+                                <p className="font-black text-lg text-[#2D3436]">fastapi backend url</p>
                                 <p className="text-xs text-slate-400 font-medium">alamat server tempat model indobertweet anda berjalan.</p>
                             </div>
                         </div>
@@ -108,7 +108,7 @@ export function Settings() {
             <div className="flex items-center justify-end gap-6">
                 {saved && (
                     <p className="text-emerald-500 font-bold text-xs flex items-center gap-2 uppercase tracking-widest">
-                        <ShieldCheck size={18} /> pengaturan berhasil disimpan
+                        <ShieldCheck size={18} /> settings saved successfully
                     </p>
                 )}
                 <button 
@@ -116,7 +116,7 @@ export function Settings() {
                     className="bg-[#6C5CE7] text-white px-12 py-4 rounded-2xl font-black shadow-xl shadow-[#6C5CE7]/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-3 text-sm uppercase tracking-widest"
                 >
                     <Save size={20} />
-                    simpan perubahan
+                    save changes
                 </button>
             </div>
         </div>
@@ -127,7 +127,7 @@ export function Settings() {
                 <div className="bg-white/10 p-4 rounded-xl w-fit text-[#6C5CE7]">
                     <ShieldCheck size={28} />
                 </div>
-                <h4 className="text-xl font-black tracking-tight">keamanan & privasi</h4>
+                <h4 className="text-xl font-black tracking-tight">security & privacy</h4>
                 <p className="text-sm text-white/60 leading-relaxed">
                     semua data klinis yang diproses oleh celestx. dikelola secara lokal. arsip deteksi dan hasil deep-scan anda tidak akan pernah meninggalkan penyimpanan browser anda.
                 </p>

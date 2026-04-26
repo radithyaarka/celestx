@@ -34,7 +34,7 @@ export function Users({ onSelectUser }) {
         <div className="space-y-2">
           <div className="flex items-center gap-4">
              <div className="bg-[#6C5CE7]/10 p-3 rounded-xl text-[#6C5CE7]"><UsersIcon size={24} /></div>
-             <h2 className="text-4xl font-black text-[#2D3436] tracking-tighter leading-none">pengguna teranalisis.</h2>
+             <h2 className="text-4xl font-black text-[#2D3436] tracking-tighter leading-none">analyzed users.</h2>
           </div>
           <p className="text-slate-400 text-sm font-medium">direktori profil dengan riwayat deep-scan yang telah selesai.</p>
         </div>
@@ -58,7 +58,7 @@ export function Users({ onSelectUser }) {
                         <img 
                             src={scan.user.avatarUrl} 
                             alt="" 
-                            className="w-20 h-20 rounded-[2.5rem] border-4 border-white shadow-xl group-hover:scale-110 transition-transform" 
+                            className="w-20 h-20 rounded-[2rem] border-4 border-white shadow-xl group-hover:scale-110 transition-transform" 
                         />
                         <div className="absolute -bottom-1 -right-1 bg-white p-1.5 rounded-full shadow-lg">
                             <div className={`w-4 h-4 rounded-full ${scan.summary.average_severity > 0.5 ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}`} />
@@ -70,7 +70,7 @@ export function Users({ onSelectUser }) {
                     
                     <div className="w-full pt-6 border-t border-black/5">
                         <div className="flex justify-between text-xs font-black text-slate-400 uppercase mb-2">
-                            <span>skor risiko</span>
+                            <span>risk severity</span>
                             <span className={getRiskColor(scan.summary.average_severity)}>{(scan.summary.average_severity * 100).toFixed(0)}%</span>
                         </div>
                         <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -86,7 +86,7 @@ export function Users({ onSelectUser }) {
                     </div>
 
                     <div className="mt-8 flex items-center gap-2 text-[#6C5CE7] font-black text-xs uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all">
-                        <span>lihat laporan</span>
+                        <span>view report</span>
                         <ChevronRight size={14} />
                     </div>
                 </GlassCard>

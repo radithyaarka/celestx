@@ -67,6 +67,11 @@ export function Dashboard({ onNavigate }) {
   const uniqueUsers = [...new Set(history.map(h => h.handle).filter(Boolean))].length;
   const recentAlerts = indicated.slice(0, 10);
   const alertRate = totalScanned > 0 ? ((indicated.length / totalScanned) * 100).toFixed(0) : 0;
+  
+  // FIX: Define avgConfidence
+  const avgConfidence = history.length > 0 
+    ? (history.reduce((a, b) => a + b.confidence, 0) / history.length * 100).toFixed(0) 
+    : 0;
 
   return (
     <div className="max-w-7xl mx-auto h-[calc(100vh-100px)] flex flex-col md:flex-row gap-8 lowercase overflow-hidden px-4">
@@ -93,29 +98,29 @@ export function Dashboard({ onNavigate }) {
           <div className="bg-white border border-black/5 p-4 rounded-xl shadow-sm flex items-center gap-3">
             <div className="p-2 bg-[#6C5CE7]/10 rounded-lg text-[#6C5CE7]"><Activity size={14} /></div>
             <div>
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">dipindai</p>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">scanned</p>
                 <p className="text-xl font-black text-[#2D3436]">{totalScanned}</p>
             </div>
           </div>
           <div className="bg-white border border-black/5 p-4 rounded-xl shadow-sm flex items-center gap-3">
             <div className="p-2 bg-rose-500/10 rounded-lg text-rose-500"><AlertTriangle size={14} /></div>
             <div>
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">terindikasi</p>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">indicated</p>
                 <p className="text-xl font-black text-rose-500">{indicated.length}</p>
             </div>
           </div>
           <div className="bg-white border border-black/5 p-4 rounded-xl shadow-sm flex items-center gap-3">
             <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-500"><TrendingDown size={14} /></div>
             <div>
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">rasio risiko</p>
-                <p className={`text-xl font-black ${getRiskColor(alertRate/100)}`}>{alertRate}%</p>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">risk rate</p>
+                <p className={`text-xl font-black ${getRiskColor(Number(alertRate)/100)}`}>{alertRate}%</p>
             </div>
           </div>
           <div className="bg-white border border-black/5 p-4 rounded-xl shadow-sm flex items-center gap-3">
             <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500"><Users size={14} /></div>
             <div>
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">pengguna</p>
-                <p className="text-xl font-black text-[#2D3436]">{uniqueUsers}</p>
+                <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">avg confidence</p>
+                <p className="text-xl font-black">{avgConfidence}%</p>
             </div>
           </div>
         </div>
@@ -132,7 +137,7 @@ export function Dashboard({ onNavigate }) {
               </div>
               <div className="space-y-1">
                 <p className="text-2xl font-black leading-tight">
-                  {scanning ? 'memindai...' : 'pindai manual'}
+                  {scanning ? 'memindai...' : 'manual scan'}
                 </p>
                 <p className="text-[10px] opacity-70 font-bold uppercase tracking-widest">ambil data timeline</p>
               </div>
@@ -142,12 +147,12 @@ export function Dashboard({ onNavigate }) {
         {/* System Status Tiles */}
         <div className="flex flex-col gap-3 shrink-0">
           <div className={`px-5 py-3 rounded-xl border text-[10px] font-black uppercase tracking-widest flex items-center justify-between ${backendStatus === 'online' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-rose-50 border-rose-100 text-rose-600'}`}>
-            <span>server api</span>
+            <span>api server</span>
             <span className="flex items-center gap-2"><div className={`w-2 h-2 rounded-full ${backendStatus === 'online' ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} /> {backendStatus}</span>
           </div>
           <div className="px-5 py-3 rounded-xl border bg-blue-50 border-blue-100 text-blue-600 text-[10px] font-black uppercase tracking-widest flex items-center justify-between">
             <span>auto-monitor</span>
-            <span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" /> aktif</span>
+            <span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" /> active</span>
           </div>
         </div>
       </div>
@@ -156,13 +161,13 @@ export function Dashboard({ onNavigate }) {
       <div className="flex-1 flex flex-col min-h-0 bg-white/40 backdrop-blur-md rounded-[3rem] border border-black/5 overflow-hidden shadow-sm">
         <div className="px-10 py-8 border-b border-black/5 flex items-center justify-between shrink-0 bg-white/50">
           <div>
-            <h3 className="text-2xl font-black text-[#2D3436] tracking-tighter">peringatan terbaru.</h3>
+            <h3 className="text-2xl font-black text-[#2D3436] tracking-tighter">recent alerts.</h3>
           </div>
           <button 
             onClick={() => onNavigate('history')}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white border border-black/5 text-[#6C5CE7] hover:bg-[#6C5CE7] hover:text-white text-[10px] font-black uppercase tracking-widest transition-all"
           >
-            riwayat <ArrowRight size={14} />
+            history <ArrowRight size={14} />
           </button>
         </div>
 
@@ -184,9 +189,9 @@ export function Dashboard({ onNavigate }) {
                                     <p className="text-slate-400 text-xs font-medium mt-1.5">{item.handle || ""}</p>
                                 </div>
                             </div>
-                            <div className="flex items-baseline gap-1.5">
-                                <p className={`font-black text-3xl ${getRiskColor(item.confidence)}`}>{(item.confidence * 100).toFixed(0)}</p>
-                                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">%</p>
+                            <div className="text-right">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 leading-none">confidence</p>
+                                <p className={`text-4xl font-black leading-none ${getRiskColor(item.confidence)}`}>{(item.confidence * 100).toFixed(0)}%</p>
                             </div>
                         </div>
                         
@@ -199,7 +204,6 @@ export function Dashboard({ onNavigate }) {
 
                         <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-[0.1em]">
                             <div className="flex items-center gap-2"><Clock size={12} /><span>{item.date ? new Date(item.date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : 'baru saja'}</span></div>
-                            <span className="bg-slate-50 px-2 py-0.5 rounded-lg border border-black/5">pola terdeteksi</span>
                         </div>
                     </div>
                 </div>

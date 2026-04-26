@@ -1,62 +1,49 @@
 # celestx. 🌌
-> **advanced twitter behavioral intelligence & risk monitoring platform**
+> **advanced twitter behavioral intelligence optimized for indonesian linguistics**
 
-celestx. is a high-performance intelligence suite designed to monitor, analyze, and identify risky behavioral patterns on twitter. built with a focus on mental health monitoring and linguistic pattern recognition, it transforms raw social data into actionable psychological insights.
+celestx. is a high-performance analytical suite specifically engineered to identify risky behavioral patterns in **bahasa indonesia**. built on the **fine-tuned indobertweet** transformer model, it provides state-of-the-art nlp accuracy for indonesian social media context, mapping raw data to **dsm-5** clinical standards.
 
 ## ✨ core features
 
 ### 🖥️ command center (dashboard)
-*   **bento-style interface**: a high-density, zero-scroll dashboard providing a real-time overview of your monitoring activity.
-*   **live monitor**: track total scanned tweets, flagged items, and calculate global risk density instantly.
-*   **recent detections**: a compact, high-priority feed of the latest identified patterns.
+*   **live monitor**: real-time tracking of indonesian twitter/x timelines with instant risk flagging.
+*   **system health**: integrated monitoring for fastapi backend and indobertweet model status.
+*   **recent alerts**: high-priority feed of the latest identified indonesian behavioral patterns.
 
-### 🔍 intelligence archive (history)
-*   **curated database**: a permanent record of all identified risks, organized by severity and timestamp.
-*   **archive overview**: high-level stats including total alerts, critical risk counts, and average severity across your entire history.
-*   **granular control**: prune your archive with individual item deletion or perform deep-scans directly from historical data.
+### 🔍 archive vault (history)
+*   **intelligence database**: a secured record of all identified risks, organized by confidence and timestamp.
+*   **verified archive**: metadata-rich entries featuring verified archive badges and clinical markers.
+*   **vault management**: prune your archive with individual deletion or perform deep-scans on specific targets.
 
-### 📊 intelligence hub (insights)
-*   **activity heatmap**: identify peak risky posting hours with a 24-hour behavioral distribution grid.
-*   **pattern keywords**: automatically extract and rank the most common linguistic themes found in risky content.
-*   **risk leaderboard**: track and rank high-risk profiles based on aggregate behavioral scores.
-*   **risk spread**: visual distribution of detections across four severity tiers: critical, elevated, low, and stable.
+### 📊 insights hub (clinical analytics)
+*   **dsm-5 mapping**: automated classification of indonesian text into 9 clinical categories.
+*   **clinical severity**: a clinical density metric calculated based on dsm-5 indicator frequency.
+*   **model confidence**: raw ai certainty score from the indobertweet engine.
+*   **dominant triggers**: visual semantic cloud showing the most frequent **bahasa indonesia** clinical keywords.
+*   **activity heatmap**: 24-hour behavioral distribution grid to identify peak risk posting hours.
 
 ### 🧬 deep scan analysis
-*   **profile-level intelligence**: perform exhaustive analysis on specific user profiles.
-*   **mental trend tracking**: visualize a user's emotional trajectory over time with dynamic line charts.
-*   **content categorization**: automatically separates original content from retweets for cleaner data interpretation.
-
-## 🎨 design philosophy
-celestx. follows a **"premium intelligence"** aesthetic:
-*   **glassmorphism**: sleek, semi-transparent interfaces with modern blur effects.
-*   **color-coded risk**: intuitive 4-tier color system (emerald, sky, amber, and rose).
-*   **high-density UX**: designed to provide maximum information without overwhelming the user.
+*   **profile intelligence**: exhaustive analysis of a user's entire behavioral history in indonesian.
+*   **symptom complexity**: mapping clinical indicator density across specific profile-level data.
+*   **report finalized**: professional, clinical-grade reports ready for academic and research support.
 
 ## 🛠️ technology stack
+*   **intelligence engine**: **fine-tuned indobertweet** (transformer-based nlp optimized for indonesian social media text).
+*   **backend**: fastapi (python) + pytorch
 *   **frontend**: react.js + tailwind css + lucide icons
-*   **backend**: fastapi (python) + custom nlp models
-*   **browser integration**: chrome extension manifest v3
+*   **integration**: chrome extension manifest v3
 
-## 🚀 getting started
-
-### 1. backend setup
-```bash
-cd backend
-pip install -r requirements.txt
-python main.py
-```
-
-### 2. dashboard setup
-```bash
-cd dashboard
-npm install
-npm run dev
-```
-
-### 3. extension installation
-1.  open `chrome://extensions/`
-2.  enable **developer mode**
-3.  click **load unpacked** and select the `dashboard` folder (after running `npm run build`)
+## 🔬 clinical methodology (dsm-5)
+the platform maps **bahasa indonesia** linguistic patterns to:
+1. suasana hati depresi
+2. anhedonia (hilang minat)
+3. perubahan nafsu makan
+4. gangguan tidur
+5. agitasi psikomotor
+6. keletihan (hilang energi)
+7. perasaan tidak berharga
+8. penurunan konsentrasi
+9. pikiran tentang kematian
 
 ---
-developed with ❤️ for advanced behavioral research.
+developed for advanced behavioral research and clinical early-intervention in the indonesian social media landscape.

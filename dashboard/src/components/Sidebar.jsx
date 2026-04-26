@@ -5,9 +5,9 @@ export function Sidebar({ currentPage, setCurrentPage }) {
   const navItems = [
     { id: 'dashboard', label: 'dashboard', icon: LayoutDashboard },
     { id: 'history', label: 'history', icon: History },
-    { id: 'users', label: 'analyzed users', icon: Users },
+    { id: 'users', label: 'users', icon: Users },
     { id: 'insights', label: 'insights', icon: BarChart3 },
-    { id: 'settings', label: 'settings', icon: Settings },
+    { id: 'settings', label: 'pengaturan', icon: Settings },
   ];
 
   return (
@@ -30,11 +30,10 @@ export function Sidebar({ currentPage, setCurrentPage }) {
             <button
               key={item.id}
               onClick={() => setCurrentPage(item.id)}
-              className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 font-bold lowercase ${
-                isActive 
-                  ? 'bg-[#6C5CE7] text-white shadow-lg shadow-[#6C5CE7]/20' 
-                  : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
-              }`}
+              className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 font-bold lowercase ${isActive
+                ? 'bg-[#6C5CE7] text-white shadow-lg shadow-[#6C5CE7]/20'
+                : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
+                }`}
             >
               <Icon size={20} className={isActive ? 'text-white' : 'text-slate-400'} />
               {item.label}
@@ -42,7 +41,7 @@ export function Sidebar({ currentPage, setCurrentPage }) {
           );
         })}
       </nav>
-      
+
       <div className="mt-auto pt-8 border-t border-black/5">
         <p className="text-[10px] text-slate-400 text-center font-medium lowercase">celestx v1.0.0</p>
       </div>
