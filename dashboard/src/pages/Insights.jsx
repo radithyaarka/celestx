@@ -3,7 +3,7 @@ import { GlassCard } from '../components/GlassCard';
 import { 
   BarChart3, TrendingUp, Users, ShieldAlert, Clock, 
   Activity, PieChart, Calendar, ArrowUpRight, Zap,
-  Hash, Brain, Gauge, Info, Timer
+  Hash, Brain, Gauge, Info, Timer, LayoutGrid, ListChecks, BookOpen
 } from 'lucide-react';
 
 export function Insights({ onScanComplete }) {
@@ -28,45 +28,45 @@ export function Insights({ onScanComplete }) {
 
   const riskRate = totalScanned > 0 ? ((indicated.length / totalScanned) * 100).toFixed(1) : 0;
   
-  // Group by day for timeline
   const last7Days = [...Array(7)].map((_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - i);
     return d.toISOString().split('T')[0];
   }).reverse();
 
-  const timelineData = last7Days.map(date => {
-    return history.filter(h => h.date && h.date.startsWith(date)).length;
-  });
-  const maxTimeline = Math.max(...timelineData, 1);
+  const activityTimeline = last7Days.map(date => history.filter(h => h.date && h.date.startsWith(date)).length);
+  const maxActivity = Math.max(...activityTimeline, 1);
 
-  // Hourly Heatmap (24 hours)
-  const hourlyData = Array(24).fill(0);
-  indicated.forEach(item => {
-    if (item.date) {
-        const hour = new Date(item.date).getHours();
-        hourlyData[hour]++;
-    }
+  const intensityTimeline = last7Days.map(date => {
+      const dayHistory = history.filter(h => h.date && h.date.startsWith(date));
+      if (dayHistory.length === 0) return 0;
+      return dayHistory.reduce((a, b) => a + b.confidence, 0) / dayHistory.length;
   });
+
+  const getDSMTopics = () => {
+    const topics = [
+        { label: 'Suasana Hati Depresi', keywords: ['sedih', 'sad', 'nangis', 'hopeless', 'kosong', 'empty', 'berduka'], count: 0, color: 'bg-rose-500' },
+        { label: 'Anhedonia (Hilang Minat)', keywords: ['bosan', 'bosen', 'interest', 'minat', 'gak seru', 'mati rasa'], count: 0, color: 'bg-orange-500' },
+        { label: 'Perubahan Nafsu Makan', keywords: ['makan', 'lapar', 'kurus', 'diet', 'appetite', 'berat badan'], count: 0, color: 'bg-amber-500' },
+        { label: 'Gangguan Tidur', keywords: ['tidur', 'insomnia', 'begadang', 'ngantuk', 'mimpi buruk', 'malam'], count: 0, color: 'bg-indigo-500' },
+        { label: 'Agitasi Psikomotor', keywords: ['gelisah', 'resah', 'agitation', 'panik', 'gemetar', 'nervous'], count: 0, color: 'bg-violet-500' },
+        { label: 'Keletihan / Hilang Energi', keywords: ['lelah', 'capek', 'tired', 'lemas', 'energi', 'mager', 'malas'], count: 0, color: 'bg-blue-500' },
+        { label: 'Perasaan Tidak Berharga', keywords: ['salah', 'guilt', 'sia-sia', 'beban', 'worthless', 'gagal', 'menyesal'], count: 0, color: 'bg-purple-500' },
+        { label: 'Penurunan Konsentrasi', keywords: ['fokus', 'bingung', 'pikiran', 'mikir', 'lupa', 'concentrate'], count: 0, color: 'bg-sky-500' },
+        { label: 'Pikiran tentang Kematian', keywords: ['mati', 'die', 'akhir', 'end', 'bunuh diri', 'nyawa', 'pergi'], count: 0, color: 'bg-slate-700' }
+    ];
+    indicated.forEach(item => {
+        const text = item.text.toLowerCase();
+        topics.forEach(t => { if (t.keywords.some(kw => text.includes(kw))) t.count++; });
+    });
+    return topics.sort((a, b) => b.count - a.count);
+  };
+  const dsmTopics = getDSMTopics();
+
+  const hourlyData = Array(24).fill(0);
+  indicated.forEach(item => { if (item.date) hourlyData[new Date(item.date).getHours()]++; });
   const maxHour = Math.max(...hourlyData, 1);
 
-  // Keyword Frequency (Simple)
-  const getKeywords = () => {
-    const stopWords = new Set(['the', 'and', 'was', 'for', 'with', 'this', 'that', 'itu', 'dan', 'yg', 'yang', 'ini', 'ada', 'ga', 'tidak', 'saya', 'aku', 'ke', 'di', 'dari']);
-    const words = {};
-    indicated.forEach(item => {
-        const clean = item.text.toLowerCase().replace(/[^\w\s]/g, '');
-        clean.split(/\s+/).forEach(word => {
-            if (word.length > 3 && !stopWords.has(word)) {
-                words[word] = (words[word] || 0) + 1;
-            }
-        });
-    });
-    return Object.entries(words).sort((a, b) => b[1] - a[1]).slice(0, 10);
-  };
-  const keywords = getKeywords();
-
-  // Leaderboard
   const leaderboard = Object.values(scannedUsers)
     .map(scan => ({
         handle: scan.user.handle,
@@ -75,159 +75,129 @@ export function Insights({ onScanComplete }) {
         avgScore: scan.summary.average_severity,
         data: scan
     }))
-    .sort((a, b) => b.avgScore - a.avgScore)
-    .slice(0, 5);
+    .sort((a, b) => b.avgScore - a.avgScore).slice(0, 5);
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 pb-20 lowercase relative">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4">
+    <div className="max-w-7xl mx-auto space-y-8 pb-20 lowercase relative px-4">
+      {/* Unified Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-2">
-          <div className="flex items-center gap-3">
-             <div className="bg-[#6C5CE7]/10 p-2 rounded-lg text-[#6C5CE7]"><BarChart3 size={20} /></div>
-             <h2 className="text-4xl font-black text-[#2D3436] tracking-tighter leading-none">intelligence hub.</h2>
+          <div className="flex items-center gap-4">
+             <div className="bg-[#6C5CE7]/10 p-3 rounded-xl text-[#6C5CE7]"><BarChart3 size={24} /></div>
+             <h2 className="text-4xl font-black text-[#2D3436] tracking-tighter leading-none">insights intelijen.</h2>
           </div>
-          <p className="text-slate-400 text-sm font-medium">deep-pattern recognition and behavioral analytics.</p>
+          <p className="text-slate-400 text-sm font-medium">pemetaan perilaku klinis berdasarkan kriteria diagnosis dsm-5.</p>
+        </div>
+        <div className="flex items-center gap-2 bg-white/50 px-4 py-2 rounded-xl border border-black/5 shadow-sm">
+            <BookOpen size={16} className="text-[#6C5CE7]" />
+            <span className="text-xs font-black text-slate-400 uppercase tracking-widest">metodologi dsm-5</span>
         </div>
       </div>
 
       {/* Hero Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 px-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         <GlassCard className="p-6 border-none shadow-sm bg-white flex items-center gap-5">
-            <div className="bg-[#6C5CE7]/10 p-4 rounded-2xl text-[#6C5CE7]"><Zap size={24} /></div>
-            <div><p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">risk density</p><p className="text-3xl font-black text-[#2D3436]">{riskRate}%</p></div>
+            <div className="bg-[#6C5CE7]/10 p-4 rounded-xl text-[#6C5CE7]"><Zap size={22} /></div>
+            <div><p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">densitas risiko</p><p className="text-3xl font-black text-[#2D3436]">{riskRate}%</p></div>
         </GlassCard>
         <GlassCard className="p-6 border-none shadow-sm bg-white flex items-center gap-5">
-            <div className="bg-rose-500/10 p-4 rounded-2xl text-rose-500"><ShieldAlert size={24} /></div>
-            <div><p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">critical flags</p><p className="text-3xl font-black text-rose-500">{highRisks.length}</p></div>
+            <div className="bg-rose-500/10 p-4 rounded-xl text-rose-500"><ShieldAlert size={22} /></div>
+            <div><p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">bendera kritis</p><p className="text-3xl font-black text-rose-500">{highRisks.length}</p></div>
         </GlassCard>
         <GlassCard className="p-6 border-none shadow-sm bg-white flex items-center gap-5">
-            <div className="bg-blue-500/10 p-4 rounded-2xl text-blue-500"><Brain size={24} /></div>
-            <div><p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">ai models</p><p className="text-3xl font-black text-[#2D3436]">v2.4</p></div>
+            <div className="bg-blue-500/10 p-4 rounded-xl text-blue-500"><Brain size={22} /></div>
+            <div><p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">model klinis</p><p className="text-3xl font-black text-[#2D3436]">v3.0</p></div>
         </GlassCard>
         <GlassCard className="p-6 border-none shadow-sm bg-white flex items-center gap-5">
-            <div className="bg-emerald-500/10 p-4 rounded-2xl text-emerald-500"><Activity size={24} /></div>
-            <div><p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">total items</p><p className="text-3xl font-black text-[#2D3436]">{totalScanned}</p></div>
+            <div className="bg-emerald-500/10 p-4 rounded-xl text-emerald-500"><Activity size={22} /></div>
+            <div><p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">total arsip</p><p className="text-3xl font-black text-[#2D3436]">{totalScanned}</p></div>
         </GlassCard>
       </div>
 
-      <div className="grid lg:grid-cols-12 gap-8 px-4">
+      <div className="grid lg:grid-cols-12 gap-8">
         
-        {/* Hourly Heatmap */}
+        {/* DSM-5 Indicators */}
         <div className="lg:col-span-8">
             <GlassCard className="p-8 border-none shadow-sm bg-white h-full">
                 <div className="flex items-center justify-between mb-8">
                     <h3 className="text-xl font-black text-[#2D3436] flex items-center gap-3">
-                        <Clock size={18} className="text-slate-400" /> activity heatmap
+                        <LayoutGrid size={20} className="text-slate-400" /> indikator dsm-5
                     </h3>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest text-right">peak posting hours<br/>(indicated only)</p>
                 </div>
-                
-                <div className="grid grid-cols-12 gap-2">
-                    {hourlyData.map((count, i) => (
-                        <div key={i} className="flex flex-col items-center gap-2 group">
-                            <div 
-                                className="w-full aspect-square rounded-lg border border-black/5 relative transition-all"
-                                style={{ backgroundColor: count > 0 ? `rgba(108, 92, 231, ${Math.max(0.1, count / maxHour)})` : '#f8fafc' }}
-                            >
-                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <div className="bg-[#2D3436] text-white text-[8px] font-black px-1.5 py-0.5 rounded shadow-xl">
-                                        {count} items
-                                    </div>
-                                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-y-8 gap-x-10">
+                    {dsmTopics.map((topic, i) => (
+                        <div key={i} className="space-y-3">
+                            <div className="flex justify-between items-end">
+                                <p className="text-xs font-black text-slate-400 uppercase tracking-wider">{topic.label}</p>
+                                <p className="text-xl font-black text-[#2D3436]">{topic.count}</p>
                             </div>
-                            <p className="text-[7px] font-black text-slate-400 uppercase">
-                                {i === 0 ? '12a' : i === 12 ? '12p' : i > 12 ? `${i-12}p` : `${i}a`}
-                            </p>
+                            <div className="h-2 bg-slate-50 rounded-full overflow-hidden border border-black/5">
+                                <div className={`h-full ${topic.color} rounded-full transition-all duration-1000`} style={{ width: `${(topic.count / (indicated.length || 1)) * 100}%` }} />
+                            </div>
                         </div>
                     ))}
-                </div>
-                <div className="mt-8 pt-8 border-t border-black/5 flex items-center justify-between">
-                    <div className="flex items-center gap-6">
-                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-slate-50 border border-black/5" /><span className="text-[9px] font-black uppercase text-slate-400">no activity</span></div>
-                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-[#6C5CE7]" /><span className="text-[9px] font-black uppercase text-slate-400">peak density</span></div>
-                    </div>
-                    <div className="flex items-center gap-2 text-[#6C5CE7]"><Info size={14} /><span className="text-[9px] font-black uppercase italic">late night posts usually carry higher risk scores</span></div>
                 </div>
             </GlassCard>
         </div>
 
-        {/* Pattern Keywords */}
+        {/* Severity Spread */}
         <div className="lg:col-span-4">
             <GlassCard className="p-8 border-none shadow-sm bg-white h-full">
                 <h3 className="text-xl font-black text-[#2D3436] flex items-center gap-3 mb-8">
-                    <Hash size={18} className="text-slate-400" /> pattern keywords
+                    <PieChart size={20} className="text-slate-400" /> sebaran keparahan
                 </h3>
-                <div className="flex flex-wrap gap-2">
-                    {keywords.length === 0 ? <p className="text-slate-300 font-bold py-10">no patterns found yet.</p> : 
-                    keywords.map(([word, freq], i) => (
-                        <div 
-                            key={i} 
-                            className="px-4 py-2 rounded-2xl bg-slate-50 border border-black/5 flex items-center gap-2 hover:border-[#6C5CE7]/30 hover:bg-white transition-all cursor-default shadow-sm"
-                            style={{ opacity: 1 - (i * 0.05) }}
-                        >
-                            <span className="text-xs font-black text-[#2D3436]">{word}</span>
-                            <span className="text-[9px] font-bold text-[#6C5CE7] bg-[#6C5CE7]/10 px-1.5 py-0.5 rounded-lg">{freq}</span>
+                <div className="space-y-6">
+                    {[
+                        { label: 'risiko kritis', count: highRisks.length, color: 'text-rose-500', bg: 'bg-rose-500' },
+                        { label: 'tingkat waspada', count: medRisks.length, color: 'text-amber-500', bg: 'bg-amber-500' },
+                        { label: 'risiko rendah', count: lowRisks.length, color: 'text-sky-500', bg: 'bg-sky-500' },
+                        { label: 'stabil / normal', count: normal.length, color: 'text-emerald-500', bg: 'bg-emerald-500' }
+                    ].map((row, i) => (
+                        <div key={i} className="flex items-center gap-5">
+                            <div className={`w-3 h-3 rounded-full ${row.bg}`} />
+                            <div className="flex-1 flex justify-between items-baseline border-b border-dashed border-slate-100 pb-2">
+                                <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{row.label}</span>
+                                <span className={`text-lg font-black ${row.color}`}>{row.count}</span>
+                            </div>
                         </div>
                     ))}
-                </div>
-                <div className="mt-8 p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
-                    <div className="flex items-center gap-3 text-emerald-600 mb-2">
-                        <Gauge size={16} />
-                        <span className="text-[10px] font-black uppercase tracking-widest">ai accuracy</span>
-                    </div>
-                    <p className="text-[10px] text-emerald-600/70 font-medium">currently matching patterns with 94.2% confidence based on linguistic analysis.</p>
                 </div>
             </GlassCard>
         </div>
 
-        {/* Top Risk Profiles (Wider) */}
-        <div className="lg:col-span-12">
-            <GlassCard className="p-8 border-none shadow-sm bg-white">
+        {/* Severity Trend Archive */}
+        <div className="lg:col-span-8">
+            <GlassCard className="p-8 border-none shadow-sm bg-white h-full flex flex-col">
                 <div className="flex items-center justify-between mb-8">
                     <h3 className="text-xl font-black text-[#2D3436] flex items-center gap-3">
-                        <TrendingUp size={18} className="text-slate-400" /> high-risk intelligence leaderboard
+                        <TrendingUp size={20} className="text-slate-400" /> tren intensitas klinis
                     </h3>
-                    <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-black/5">
-                        <Timer size={12} className="text-[#6C5CE7]" />
-                        <span className="text-[8px] font-black text-slate-400 uppercase">last updated just now</span>
-                    </div>
                 </div>
+                <div className="flex-1 relative min-h-[220px]">
+                    <svg viewBox="0 0 700 200" className="w-full h-full overflow-visible">
+                        <path d={`M 0,200 L ${intensityTimeline.map((v, i) => `${(i / 6) * 700},${200 - v * 200}`).join(' L ')} L 700,200 Z`} fill="rgba(108, 92, 231, 0.05)" />
+                        <path d={`M ${intensityTimeline.map((v, i) => `${(i / 6) * 700},${200 - v * 200}`).join(' L ')}`} fill="none" stroke="#6C5CE7" strokeWidth="4" />
+                        {intensityTimeline.map((v, i) => (<circle key={i} cx={(i / 6) * 700} cy={200 - v * 200} r="5" fill="white" stroke="#6C5CE7" strokeWidth="3" />))}
+                    </svg>
+                </div>
+            </GlassCard>
+        </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-                    {leaderboard.length === 0 ? (
-                        <div className="col-span-5 py-20 text-center text-slate-300 font-bold">no deep scans available.</div>
-                    ) : (
-                        leaderboard.map((user, i) => (
-                            <div 
-                                key={i} 
-                                onClick={() => onScanComplete(user.data)}
-                                className="group cursor-pointer bg-slate-50 border border-black/5 p-6 rounded-[2rem] hover:border-[#6C5CE7]/30 hover:bg-white hover:shadow-xl transition-all"
-                            >
-                                <div className="flex flex-col items-center text-center">
-                                    <div className="relative mb-4">
-                                        <img src={user.avatar} alt="" className="w-16 h-16 rounded-[2rem] border-2 border-white shadow-md group-hover:scale-110 transition-transform" />
-                                        <div className="absolute -bottom-1 -right-1 bg-white p-1 rounded-full shadow-sm"><div className={`w-3 h-3 rounded-full ${user.avgScore > 0.5 ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}`} /></div>
-                                    </div>
-                                    <p className="text-sm font-black text-[#2D3436] leading-none mb-1 truncate w-full group-hover:text-[#6C5CE7] transition-colors">{user.displayName || "unknown"}</p>
-                                    <p className="text-[9px] text-slate-400 font-medium mb-4 truncate w-full">{user.handle}</p>
-                                    
-                                    <div className="w-full pt-4 border-t border-black/5">
-                                        <div className="flex justify-between text-[8px] font-black text-slate-400 uppercase mb-1"><span>risk level</span><span>{(user.avgScore * 100).toFixed(0)}%</span></div>
-                                        <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                                            <div 
-                                                className={`h-full transition-all duration-1000 ${
-                                                    user.avgScore <= 0.15 ? 'bg-emerald-500' : 
-                                                    user.avgScore <= 0.50 ? 'bg-sky-500' : 
-                                                    user.avgScore <= 0.75 ? 'bg-amber-500' : 'bg-rose-500'
-                                                }`} 
-                                                style={{ width: `${user.avgScore * 100}%` }} 
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))
-                    )}
+        {/* Activity Heatmap */}
+        <div className="lg:col-span-4">
+            <GlassCard className="p-8 border-none shadow-sm bg-white h-full">
+                <h3 className="text-xl font-black text-[#2D3436] flex items-center gap-3 mb-8">
+                    <Clock size={20} className="text-slate-400" /> heatmap aktivitas
+                </h3>
+                <div className="grid grid-cols-4 gap-4">
+                    {hourlyData.map((count, i) => (
+                        <div key={i} className="flex flex-col items-center gap-2 group">
+                            <div className="w-full aspect-square rounded-lg border border-black/5 relative transition-all" style={{ backgroundColor: count > 0 ? `rgba(108, 92, 231, ${Math.max(0.1, count / maxHour)})` : '#f8fafc' }} />
+                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-tighter">
+                                {i === 0 ? '12 AM' : i === 12 ? '12 PM' : i > 12 ? `${i-12} PM` : `${i} AM`}
+                            </p>
+                        </div>
+                    ))}
                 </div>
             </GlassCard>
         </div>
