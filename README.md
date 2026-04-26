@@ -58,6 +58,4 @@ the platform maps **bahasa indonesia** linguistic patterns to:
   
 *developed for advanced behavioral research and clinical early-intervention in the indonesian social media landscape.*
 
-**made with love in surabaya.** ⚓
-
 </div>
