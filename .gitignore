@@ -1,0 +1,28 @@
+# Ignore models in any subdirectory
+**/model_ta/
+*.safetensors
+*.bin
+*.h5
+*.onnx
+
+# Node.js
+**/node_modules/
+**/dist/
+**/build/
+.next/
+out/
+
+# Python
+**/__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.env
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+.gemini/

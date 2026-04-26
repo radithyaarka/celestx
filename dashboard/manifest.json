@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "celestx.",
+  "version": "1.0.0",
+  "description": "spotting the clouds, before the storm. a specialized mental health early depression detection tool.",
+  "chrome_url_overrides": {
+    "newtab": "index.html"
+  },
+  "permissions": [
+    "tabs",
+    "activeTab",
+    "scripting",
+    "storage",
+    "alarms",
+    "notifications"
+  ],
+  "host_permissions": [
+    "*://*.twitter.com/*",
+    "*://*.x.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.twitter.com/*", "*://*.x.com/*"],
+      "js": ["src/content.js"]
+    }
+  ]
+}
