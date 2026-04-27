@@ -39,7 +39,7 @@ export function CircularMeter({ score, label, customColor }) {
           className="transition-all duration-1000 ease-out"
         />
       </svg>
-      <div className="absolute flex flex-col items-center justify-center text-center rotate-90">
+      <div className="absolute flex flex-col items-center justify-center text-center">
         <span className="text-5xl font-black text-[#2D3436] tracking-tighter">
           {percentage}<span className="text-xl">%</span>
         </span>

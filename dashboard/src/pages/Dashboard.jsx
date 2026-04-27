@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { GlassCard } from '../components/GlassCard';
 import {
   ShieldCheck, ShieldAlert, WifiOff, ScanSearch, Loader2,
-  Activity, AlertTriangle, CheckCircle2, Server, Zap, TrendingDown, Clock, Users, ArrowRight, Cloud
+  Activity, AlertTriangle, CheckCircle2, Server, Zap, TrendingDown, Clock, Users, ArrowRight, Cloud, User, Info
 } from 'lucide-react';
 
 export function Dashboard({ onNavigate }) {
@@ -68,9 +68,10 @@ export function Dashboard({ onNavigate }) {
   const recentAlerts = indicated.slice(0, 10);
   const alertRate = totalScanned > 0 ? ((indicated.length / totalScanned) * 100).toFixed(0) : 0;
   
-  // FIX: Define avgConfidence
-  const avgConfidence = history.length > 0 
-    ? (history.reduce((a, b) => a + b.confidence, 0) / history.length * 100).toFixed(0) 
+  const totalIndicatedConfidence = history.reduce((a, b) => a + (b.confidence || 0), 0);
+  const estimatedNormalCount = Math.max(0, totalScanned - history.length);
+  const avgConfidence = totalScanned > 0 
+    ? (((totalIndicatedConfidence + (estimatedNormalCount * 0.03)) / totalScanned) * 100).toFixed(1) 
     : 0;
 
   return (
@@ -79,7 +80,6 @@ export function Dashboard({ onNavigate }) {
       {/* Left Column: Control Panel */}
       <div className="w-full md:w-[350px] flex flex-col shrink-0 h-full overflow-hidden pb-4 space-y-6">
         
-        {/* Unified Header */}
         <div className="shrink-0 space-y-4">
           <div className="flex items-center gap-4">
             <div className="bg-[#6C5CE7]/10 p-3 rounded-xl text-[#6C5CE7]">
@@ -93,53 +93,115 @@ export function Dashboard({ onNavigate }) {
           <div className="h-px bg-black/5 w-full" />
         </div>
 
-        {/* Stats Grid */}
+        {/* Stats Grid - 2 Columns x 3 Rows */}
         <div className="grid grid-cols-2 gap-4 shrink-0">
-          <div className="bg-white border border-black/5 p-4 rounded-xl shadow-sm flex items-center gap-3">
+          <div className="bg-white border border-black/5 p-4 rounded-xl shadow-sm flex items-center gap-3 relative group/tip overflow-visible">
             <div className="p-2 bg-[#6C5CE7]/10 rounded-lg text-[#6C5CE7]"><Activity size={14} /></div>
             <div>
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">scanned</p>
-                <p className="text-xl font-black text-[#2D3436]">{totalScanned}</p>
+                <div className="flex items-center gap-1">
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-none">scanned</p>
+                    <div className="relative group/info">
+                        <Info size={10} className="text-slate-300" />
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-40 p-2.5 bg-[#2D3436] text-white text-[9px] font-medium leading-relaxed rounded-xl opacity-0 group-hover/info:opacity-100 transition-all pointer-events-none z-[100] shadow-2xl border border-white/10 text-center lowercase">
+                            total tweet yang telah diproses oleh sistem celestx.
+                        </div>
+                    </div>
+                </div>
+                <p className="text-xl font-black text-[#2D3436] mt-1">{totalScanned}</p>
             </div>
           </div>
-          <div className="bg-white border border-black/5 p-4 rounded-xl shadow-sm flex items-center gap-3">
+          <div className="bg-white border border-black/5 p-4 rounded-xl shadow-sm flex items-center gap-3 relative group/tip overflow-visible">
             <div className="p-2 bg-rose-500/10 rounded-lg text-rose-500"><AlertTriangle size={14} /></div>
             <div>
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">indicated</p>
-                <p className="text-xl font-black text-rose-500">{indicated.length}</p>
+                <div className="flex items-center gap-1">
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-none">indicated</p>
+                    <div className="relative group/info">
+                        <Info size={10} className="text-slate-300" />
+                        <div className="absolute bottom-full right-0 mb-2 w-40 p-2.5 bg-[#2D3436] text-white text-[9px] font-medium leading-relaxed rounded-xl opacity-0 group-hover/info:opacity-100 transition-all pointer-events-none z-[100] shadow-2xl border border-white/10 text-right lowercase">
+                            jumlah tweet yang terdeteksi memiliki indikasi depresi.
+                        </div>
+                    </div>
+                </div>
+                <p className="text-xl font-black text-rose-500 mt-1">{indicated.length}</p>
             </div>
           </div>
-          <div className="bg-white border border-black/5 p-4 rounded-xl shadow-sm flex items-center gap-3">
+          <div className="bg-white border border-black/5 p-4 rounded-xl shadow-sm flex items-center gap-3 relative group/tip overflow-visible">
+            <div className="p-2 bg-blue-400/10 rounded-lg text-blue-400"><CheckCircle2 size={14} /></div>
+            <div>
+                <div className="flex items-center gap-1">
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-none">normal</p>
+                    <div className="relative group/info">
+                        <Info size={10} className="text-slate-300" />
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-40 p-2.5 bg-[#2D3436] text-white text-[9px] font-medium leading-relaxed rounded-xl opacity-0 group-hover/info:opacity-100 transition-all pointer-events-none z-[100] shadow-2xl border border-white/10 text-center lowercase">
+                            tweet yang dianalisis dan dinyatakan normal oleh ai.
+                        </div>
+                    </div>
+                </div>
+                <p className="text-xl font-black text-blue-400 mt-1">{totalScanned - indicated.length}</p>
+            </div>
+          </div>
+          <div className="bg-white border border-black/5 p-4 rounded-xl shadow-sm flex items-center gap-3 relative group/tip overflow-visible">
             <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-500"><TrendingDown size={14} /></div>
             <div>
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">risk rate</p>
-                <p className={`text-xl font-black ${getRiskColor(Number(alertRate)/100)}`}>{alertRate}%</p>
+                <div className="flex items-center gap-1">
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-none">risk rate</p>
+                    <div className="relative group/info">
+                        <Info size={10} className="text-slate-300" />
+                        <div className="absolute bottom-full right-0 mb-2 w-40 p-2.5 bg-[#2D3436] text-white text-[9px] font-medium leading-relaxed rounded-xl opacity-0 group-hover/info:opacity-100 transition-all pointer-events-none z-[100] shadow-2xl border border-white/10 text-right lowercase">
+                            persentase prevalensi indikasi depresi dari populasi.
+                        </div>
+                    </div>
+                </div>
+                <p className={`text-xl font-black mt-1 ${getRiskColor(Number(alertRate)/100)}`}>{alertRate}%</p>
             </div>
           </div>
-          <div className="bg-white border border-black/5 p-4 rounded-xl shadow-sm flex items-center gap-3">
+          <div className="bg-white border border-black/5 p-4 rounded-xl shadow-sm flex items-center gap-3 relative group/tip overflow-visible">
             <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500"><Users size={14} /></div>
             <div>
-                <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">avg confidence</p>
-                <p className="text-xl font-black">{avgConfidence}%</p>
+                <div className="flex items-center gap-1">
+                    <p className="text-[9px] font-black uppercase tracking-widest opacity-60 leading-none">subjects</p>
+                    <div className="relative group/info">
+                        <Info size={10} className="text-slate-300" />
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-40 p-2.5 bg-[#2D3436] text-white text-[9px] font-medium leading-relaxed rounded-xl opacity-0 group-hover/info:opacity-100 transition-all pointer-events-none z-[100] shadow-2xl border border-white/10 text-center lowercase">
+                            jumlah user unik yang datanya pernah dianalisis.
+                        </div>
+                    </div>
+                </div>
+                <p className="text-xl font-black mt-1">{uniqueUsers}</p>
+            </div>
+          </div>
+          <div className="bg-white border border-black/5 p-4 rounded-xl shadow-sm flex items-center gap-3 relative group/tip overflow-visible">
+            <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-500"><Activity size={14} /></div>
+            <div>
+                <div className="flex items-center gap-1">
+                    <p className="text-[9px] font-black uppercase tracking-widest opacity-60 leading-none">avg intensity</p>
+                    <div className="relative group/info">
+                        <Info size={10} className="text-slate-300" />
+                        <div className="absolute bottom-full right-0 mb-2 w-40 p-2.5 bg-[#2D3436] text-white text-[9px] font-medium leading-relaxed rounded-xl opacity-0 group-hover/info:opacity-100 transition-all pointer-events-none z-[100] shadow-2xl border border-white/10 text-right lowercase">
+                            rata-rata intensitas indikasi depresi dari seluruh data.
+                        </div>
+                    </div>
+                </div>
+                <p className="text-xl font-black mt-1">{avgConfidence}%</p>
             </div>
           </div>
         </div>
 
-        {/* Manual Scan Action */}
-        <div className="flex-1 flex flex-col justify-center min-h-0">
+        {/* Manual Scan Action - Slimmer Version */}
+        <div className="shrink-0">
             <div 
               onClick={handleManualScan}
-              className="bg-[#6C5CE7] rounded-[2.5rem] p-8 aspect-square flex flex-col items-center justify-center text-center text-white cursor-pointer hover:bg-[#5A4AD1] transition-all shadow-xl shadow-[#6C5CE7]/20 relative overflow-hidden group w-full"
+              className="bg-[#6C5CE7] rounded-2xl p-5 flex items-center justify-center gap-4 text-white cursor-pointer hover:bg-[#5A4AD1] transition-all shadow-lg shadow-[#6C5CE7]/20 relative overflow-hidden group w-full"
             >
               <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="bg-white/20 w-14 h-14 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                {scanning ? <Loader2 className="animate-spin" size={28} /> : <ScanSearch size={28} />}
+              <div className="bg-white/20 w-10 h-10 rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform shrink-0">
+                {scanning ? <Loader2 className="animate-spin" size={20} /> : <ScanSearch size={20} />}
               </div>
-              <div className="space-y-1">
-                <p className="text-2xl font-black leading-tight">
+              <div className="text-left">
+                <p className="text-lg font-black leading-none">
                   {scanning ? 'memindai...' : 'manual scan'}
                 </p>
-                <p className="text-[10px] opacity-70 font-bold uppercase tracking-widest">ambil data timeline</p>
+                <p className="text-[9px] opacity-70 font-bold uppercase tracking-widest mt-1">update live timeline</p>
               </div>
             </div>
         </div>
@@ -171,7 +233,7 @@ export function Dashboard({ onNavigate }) {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-4">
+        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-6">
           {recentAlerts.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-slate-300 gap-4">
                 <ShieldCheck size={56} className="opacity-10" />
@@ -179,31 +241,44 @@ export function Dashboard({ onNavigate }) {
               </div>
           ) : (
               recentAlerts.map((item, idx) => (
-                <div key={idx} className="p-6 rounded-[2rem] border border-black/5 bg-white shadow-sm hover:border-[#6C5CE7]/20 transition-all group">
-                    <div className="flex flex-col gap-5">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                {item.avatarUrl ? <img src={item.avatarUrl} alt="" className="w-10 h-10 rounded-full border border-black/5 shadow-sm" /> : <div className="w-10 h-10 rounded-full bg-slate-100" />}
-                                <div>
-                                    <p className="text-[#2D3436] font-black text-base leading-none group-hover:text-[#6C5CE7] transition-colors">{item.displayName || "unknown"}</p>
-                                    <p className="text-slate-400 text-xs font-medium mt-1.5">{item.handle || ""}</p>
-                                </div>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 leading-none">confidence</p>
-                                <p className={`text-4xl font-black leading-none ${getRiskColor(item.confidence)}`}>{(item.confidence * 100).toFixed(0)}%</p>
-                            </div>
-                        </div>
-                        
-                        <div className="relative">
-                            <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#74B9FF]/20 rounded-full" />
-                            <p className="text-slate-500 text-base pl-6 py-0.5 leading-relaxed italic line-clamp-2">
-                                "{item.text}"
-                            </p>
+                <div key={idx} className="p-6 rounded-[2rem] border border-black/[0.03] bg-white shadow-sm hover:border-[#6C5CE7]/20 transition-all group relative overflow-hidden">
+                    <div className="flex gap-4">
+                        <div className="shrink-0">
+                            {item.avatarUrl ? (
+                                <img src={item.avatarUrl} alt="" className="w-10 h-10 rounded-full border border-black/5 shadow-sm" />
+                            ) : (
+                                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-300"><User size={20} /></div>
+                            )}
                         </div>
 
-                        <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-[0.1em]">
-                            <div className="flex items-center gap-2"><Clock size={12} /><span>{item.date ? new Date(item.date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : 'baru saja'}</span></div>
+                        <div className="flex-1 space-y-3">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-sm font-black text-[#2D3436] leading-none">{item.displayName || "unknown"}</span>
+                                        <span className="text-[10px] font-medium text-slate-400">{item.handle || ""}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 text-[9px] text-slate-300 font-black uppercase tracking-widest mt-1">
+                                        <Clock size={10} />
+                                        <span>{item.date ? new Date(item.date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : 'baru saja'}</span>
+                                    </div>
+                                </div>
+                                <div className="text-right shrink-0">
+                                    <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-0.5">evidence strength</p>
+                                    <p className={`text-2xl font-black leading-none ${getRiskColor(item.confidence)}`}>{(item.confidence * 100).toFixed(0)}%</p>
+                                </div>
+                            </div>
+                            
+                            <p className="text-slate-500 text-sm leading-relaxed italic">
+                                "{item.text}"
+                            </p>
+
+                            {/* Media Image */}
+                            {(item.imageUrl || item.mediaUrl) && (
+                                <div className="mt-3 rounded-2xl overflow-hidden border border-black/5 shadow-sm bg-slate-100">
+                                    <img src={item.imageUrl || item.mediaUrl} alt="" className="w-full h-auto max-h-60 object-cover" />
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

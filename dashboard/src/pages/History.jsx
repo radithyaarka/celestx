@@ -14,7 +14,9 @@ import {
   Database,
   Brain,
   Zap,
-  Layout
+  Layout,
+  User,
+  Share2
 } from 'lucide-react';
 
 export function History({ onNavigate, onScanComplete }) {
@@ -110,10 +112,8 @@ export function History({ onNavigate, onScanComplete }) {
   return (
     <div className="max-w-7xl mx-auto space-y-12 pb-20 lowercase relative px-4">
       
-      {/* Background Decoration */}
       <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-[#6C5CE7]/5 blur-[120px] rounded-full -z-10" />
 
-      {/* Unified Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-2">
           <div className="flex items-center gap-4">
@@ -136,7 +136,6 @@ export function History({ onNavigate, onScanComplete }) {
         </div>
       </div>
 
-      {/* Modern Stats Grid */}
       {history.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 shrink-0">
           <div className="bg-white border border-black/5 p-6 rounded-[2rem] flex items-center gap-4 shadow-sm group hover:border-[#6C5CE7]/30 transition-all">
@@ -149,7 +148,7 @@ export function History({ onNavigate, onScanComplete }) {
           </div>
           <div className="bg-white border border-black/5 p-6 rounded-[2rem] flex items-center gap-4 shadow-sm group hover:border-[#6C5CE7]/30 transition-all">
             <div className="bg-indigo-50 p-2.5 rounded-lg text-indigo-300 group-hover:bg-indigo-500 group-hover:text-white transition-all"><TrendingUp size={18} /></div>
-            <div><p className="text-[10px] text-slate-400 font-black uppercase tracking-widest leading-none mb-1.5">avg confidence</p><p className="text-2xl font-black text-[#6C5CE7] leading-none">{avgScore}%</p></div>
+            <div><p className="text-[10px] text-slate-400 font-black uppercase tracking-widest leading-none mb-1.5">avg intensity</p><p className="text-2xl font-black text-[#6C5CE7] leading-none">{avgScore}%</p></div>
           </div>
           <div className="bg-[#6C5CE7] p-6 rounded-[2rem] flex items-center gap-4 shadow-lg shadow-[#6C5CE7]/20 border border-[#6C5CE7]">
             <div className="bg-white/20 p-2.5 rounded-lg text-white"><Zap size={18} /></div>
@@ -158,7 +157,6 @@ export function History({ onNavigate, onScanComplete }) {
         </div>
       )}
 
-      {/* Main Content Grid */}
       <div className="grid grid-cols-1 gap-6">
         {history.length === 0 ? (
           <div className="text-center py-32 bg-slate-50/50 rounded-[3rem] border-2 border-dashed border-slate-100">
@@ -180,36 +178,44 @@ export function History({ onNavigate, onScanComplete }) {
 
               <div className="flex flex-col lg:flex-row justify-between gap-10">
                 <div className="flex-1 space-y-6">
-                  <div className="flex items-center gap-4">
-                    {item.avatarUrl ? (
-                      <img src={item.avatarUrl} alt="" className="w-12 h-12 rounded-full border border-black/5 shadow-sm" />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-slate-100 border border-black/5 flex items-center justify-center text-slate-400 text-xs font-black">?</div>
-                    )}
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-[#2D3436] font-black text-lg leading-none group-hover:text-[#6C5CE7] transition-colors">{item.displayName || "unknown"}</p>
-                        <div className="bg-slate-50 px-2 py-0.5 rounded-full border border-black/5 text-[8px] font-black text-slate-400 uppercase tracking-tighter">verified archive</div>
-                      </div>
-                      <p className="text-slate-400 text-sm font-medium mt-1.5">{item.handle || ""}</p>
+                  <div className="flex gap-4">
+                    <div className="shrink-0">
+                        {item.avatarUrl ? (
+                            <img src={item.avatarUrl} alt="" className="w-10 h-10 rounded-full border border-black/5 shadow-sm" />
+                        ) : (
+                            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-300"><User size={20} /></div>
+                        )}
                     </div>
-                  </div>
+                    <div className="flex-1 space-y-3">
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-black text-[#2D3436] leading-none">{item.displayName || "unknown"}</span>
+                            <span className="text-[10px] font-medium text-slate-400">{item.handle || ""}</span>
+                        </div>
+                        
+                        <div className="relative">
+                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#6C5CE7]/20 rounded-full" />
+                            <p className="text-slate-600 text-sm pl-6 py-0.5 leading-relaxed italic">
+                                "{item.text}"
+                            </p>
+                        </div>
 
-                  <div className="relative">
-                    <div className="absolute left-0 top-1 bottom-1 w-1.5 bg-[#6C5CE7]/20 rounded-full" />
-                    <p className="text-slate-600 text-lg pl-8 py-0.5 leading-relaxed italic line-clamp-3">
-                      "{item.text}"
-                    </p>
-                  </div>
+                        {/* Media Image Preview */}
+                        {(item.imageUrl || item.mediaUrl) && (
+                            <div className="mt-3 rounded-2xl overflow-hidden border border-black/5 shadow-sm bg-slate-100 max-w-md">
+                                <img src={item.imageUrl || item.mediaUrl} alt="" className="w-full h-auto max-h-48 object-cover" />
+                            </div>
+                        )}
 
-                  <div className="flex items-center gap-4 text-[10px] text-slate-400 font-black uppercase tracking-widest pt-1">
-                    <div className="flex items-center gap-1.5"><Clock size={14} className="text-[#6C5CE7]/60" /><span>{item.date ? new Date(item.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'unknown'}</span></div>
+                        <div className="flex items-center gap-4 text-[9px] text-slate-300 font-black uppercase tracking-widest pt-1">
+                            <div className="flex items-center gap-1.5"><Clock size={12} className="text-[#6C5CE7]/60" /><span>{item.date ? new Date(item.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'unknown'}</span></div>
+                        </div>
+                    </div>
                   </div>
                 </div>
 
                 <div className="flex flex-row lg:flex-col items-center justify-center gap-6 shrink-0 lg:border-l lg:pl-10 lg:min-w-[200px] bg-slate-50/50 -m-8 lg:m-0 p-8 lg:p-0">
                   <div className="text-center flex-1 lg:flex-none">
-                    <p className="text-[10px] text-slate-400 uppercase tracking-widest font-black mb-1.5">confidence level</p>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-widest font-black mb-1.5">intensitas klinis</p>
                     <p className={`font-black text-5xl ${getRiskColor(item.confidence)}`}>{(item.confidence * 100).toFixed(0)}<span className="text-2xl">%</span></p>
                   </div>
 

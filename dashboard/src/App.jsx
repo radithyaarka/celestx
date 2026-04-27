@@ -52,7 +52,11 @@ function App() {
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[#74B9FF]/10 blur-[120px] rounded-full" />
       </div>
 
-      <Sidebar currentPage={currentPage} setCurrentPage={navigate} />
+      <Sidebar 
+        currentPage={currentPage} 
+        setCurrentPage={navigate} 
+        previousPage={previousPage}
+      />
 
       <div className="flex-1 flex flex-col h-screen overflow-y-auto relative">
         {/* Mobile Header */}

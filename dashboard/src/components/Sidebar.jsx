@@ -1,7 +1,7 @@
 import React from 'react';
 import { LayoutDashboard, History, Cloud, BarChart3, Settings, Users } from 'lucide-react';
 
-export function Sidebar({ currentPage, setCurrentPage }) {
+export function Sidebar({ currentPage, setCurrentPage, previousPage }) {
   const navItems = [
     { id: 'dashboard', label: 'dashboard', icon: LayoutDashboard },
     { id: 'history', label: 'history', icon: History },
@@ -25,7 +25,7 @@ export function Sidebar({ currentPage, setCurrentPage }) {
       <nav className="flex-1 space-y-2">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = currentPage === item.id || (item.id === 'history' && currentPage === 'user-analysis');
+          const isActive = currentPage === item.id || (currentPage === 'user-analysis' && previousPage === item.id);
           return (
             <button
               key={item.id}

@@ -86,8 +86,8 @@ export function Settings() {
                                     <Sliders size={24} />
                                 </div>
                                 <div>
-                                    <p className="font-black text-xl text-[#2D3436]">confidence threshold</p>
-                                    <p className="text-xs text-slate-400 font-medium mt-1">batas minimal ai untuk memicu alert deteksi.</p>
+                                    <p className="font-black text-xl text-[#2D3436]">ambang batas deteksi</p>
+                                    <p className="text-xs text-slate-400 font-medium mt-1">sensitivitas minimal sistem untuk memicu alert deteksi.</p>
                                 </div>
                             </div>
                             <div className="text-right">

@@ -43,15 +43,33 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 // ─── Core Extraction Logic ──────────────────────────────────────────────────
 function extractTweets() {
-  const textContainers = document.querySelectorAll('div[data-testid="tweetText"]');
+  const articles = document.querySelectorAll('article[data-testid="tweet"]');
   const tweets = [];
 
-  textContainers.forEach((textEl, index) => {
-    const article = textEl.closest('article[data-testid="tweet"]');
-    
+  articles.forEach((article, index) => {
+    // Find all tweet texts within this article
+    const allTextEls = article.querySelectorAll('div[data-testid="tweetText"]');
+    if (allTextEls.length === 0) return;
+
+    // Filter to find the main tweet text (not the one inside a quote box)
+    // Quoted tweets are usually wrapped in a div with role="link" that contains its own User-Name
+    const mainTextEl = Array.from(allTextEls).find(el => {
+        let parent = el.parentElement;
+        while (parent && parent !== article) {
+            // If we find a parent that looks like a quote container, skip this text
+            if (parent.getAttribute('role') === 'link' && parent.querySelector('[data-testid="User-Name"]')) {
+                return false;
+            }
+            parent = parent.parentElement;
+        }
+        return true;
+    });
+
+    if (!mainTextEl) return;
+
     let tweetData = {
       id: index,
-      text: textEl.innerText,
+      text: mainTextEl.innerText,
       displayName: "Unknown User",
       handle: "",
       avatarUrl: "",
@@ -59,33 +77,47 @@ function extractTweets() {
       timestamp: new Date().toISOString()
     };
 
-    if (article) {
-      const userNameContainer = article.querySelector('[data-testid="User-Name"]');
-      if (userNameContainer) {
-        const textParts = userNameContainer.innerText.split('\n');
-        tweetData.displayName = textParts[0] || "Unknown User";
-        tweetData.handle = textParts.find(t => t && t.startsWith('@')) || "";
-      }
+    const userNameContainer = article.querySelector('[data-testid="User-Name"]');
+    if (userNameContainer) {
+      const textParts = userNameContainer.innerText.split('\n');
+      tweetData.displayName = textParts[0] || "Unknown User";
+      tweetData.handle = textParts.find(t => t && t.startsWith('@')) || "";
+    }
 
-      const avatarImg = article.querySelector('[data-testid="Tweet-User-Avatar"] img');
-      if (avatarImg) tweetData.avatarUrl = avatarImg.src;
+    const avatarImg = article.querySelector('[data-testid="Tweet-User-Avatar"] img');
+    if (avatarImg) tweetData.avatarUrl = avatarImg.src;
 
-      const socialContext = article.querySelector('[data-testid="socialContext"]');
-      if (socialContext) {
-        const text = socialContext.innerText.toLowerCase();
-        tweetData.isRetweet = text.includes('retweet') || text.includes('me-retweet') || text.length > 0;
-      }
+    const socialContext = article.querySelector('[data-testid="socialContext"]');
+    if (socialContext) {
+      // If there is social context (Retweeted, Liked, Promoted), it's not a pure original tweet
+      tweetData.isRetweet = true;
+    }
 
-      const timeEl = article.querySelector('time');
-      if (timeEl) {
-        const dt = timeEl.getAttribute('datetime');
-        if (dt) tweetData.timestamp = dt;
-      }
+    // NEW: If it contains a quote box, classify as Retweet for filtering purposes
+    const hasQuote = Array.from(allTextEls).some(el => {
+        let parent = el.parentElement;
+        while (parent && parent !== article) {
+            if (parent.getAttribute('role') === 'link' && parent.querySelector('[data-testid="User-Name"]')) {
+                return true;
+            }
+            parent = parent.parentElement;
+        }
+        return false;
+    });
+    if (hasQuote) tweetData.isRetweet = true;
 
-      const imageEls = article.querySelectorAll('div[data-testid="tweetPhoto"] img');
-      if (imageEls.length > 0) {
-        tweetData.images = Array.from(imageEls).map(img => img.src);
-      }
+    const timeEl = article.querySelector('time');
+    if (timeEl) {
+      const dt = timeEl.getAttribute('datetime');
+      if (dt) tweetData.timestamp = dt;
+    }
+
+    const imageEls = article.querySelectorAll('div[data-testid="tweetPhoto"] img');
+    if (imageEls.length > 0) {
+      const urls = Array.from(imageEls).map(img => img.src);
+      tweetData.images = urls;
+      tweetData.imageUrl = urls[0]; // Set this for dashboard compatibility
+      tweetData.mediaUrl = urls[0]; // Backup field
     }
 
     tweets.push(tweetData);
