@@ -6,6 +6,43 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendResponse({ tweets: extractTweets() });
   } 
   else if (request.action === 'deep_scrape_profile') {
+    const extractProfileInfo = () => {
+        const findAvatar = () => {
+            // Priority 1: Main profile photo link
+            const mainPhoto = document.querySelector('a[href$="/photo"] img');
+            if (mainPhoto?.src) return mainPhoto.src;
+
+            // Priority 2: Testing alternative selectors
+            const altPhoto = document.querySelector('[data-testid="UserProfileHeader-base"] img[src*="profile_images"]');
+            if (altPhoto?.src) return altPhoto.src;
+
+            // Priority 3: Aria-label based search
+            const ariaPhoto = document.querySelector('div[aria-label*="Profile photo"] img') || document.querySelector('div[aria-label*="Foto profil"] img');
+            if (ariaPhoto?.src) return ariaPhoto.src;
+
+            return "";
+        };
+
+        let info = {
+            displayName: document.querySelector('[data-testid="UserName"]')?.innerText?.split('\n')[0] || "Unknown",
+            handle: window.location.pathname.replace('/', '@'),
+            avatarUrl: findAvatar(),
+            bio: document.querySelector('[data-testid="UserDescription"]')?.innerText || ""
+        };
+
+        // Final fallback: Use avatar from an ORIGINAL tweet if header fails
+        if (!info.avatarUrl) {
+            const originalArticle = Array.from(document.querySelectorAll('article[data-testid="tweet"]'))
+                .find(art => !art.querySelector('[data-testid="socialContext"]'));
+            
+            const tweetAvatar = originalArticle?.querySelector('[data-testid="Tweet-User-Avatar"] img');
+            if (tweetAvatar) info.avatarUrl = tweetAvatar.src;
+        }
+
+        return info;
+    };
+
+    let profileInfo = extractProfileInfo();
     let scrapedTweetsMap = new Map();
     let scrollCount = 0;
     
@@ -32,7 +69,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         
         if (scrollCount >= 40 || scrapedTweetsMap.size >= 50) {
             clearInterval(scrollInterval);
-            sendResponse({ tweets: Array.from(scrapedTweetsMap.values()).slice(0, 50) });
+            sendResponse({ 
+                profile: profileInfo,
+                tweets: Array.from(scrapedTweetsMap.values()).slice(0, 50) 
+            });
         }
     }, 1500);
     

@@ -11,7 +11,7 @@ import {
 
 export function UserAnalysis({ data, onBack }) {
     const [filter, setFilter] = useState('all'); // 'all', 'original', 'retweets'
-    const [sortBy, setSortBy] = useState('latest'); // 'latest' or 'density'
+    const [sortBy, setSortBy] = useState('latest'); // 'latest' or 'intensity'
     
     useEffect(() => {
         const scrollContainer = document.querySelector('main')?.parentElement;
@@ -100,7 +100,7 @@ export function UserAnalysis({ data, onBack }) {
             return true;
         })
         .sort((a, b) => {
-            if (sortBy === 'density') return (b.score || 0) - (a.score || 0);
+            if (sortBy === 'intensity') return (b.score || 0) - (a.score || 0);
             return getTsForFeed(b) - getTsForFeed(a); // Default: Latest first
         });
 
@@ -195,7 +195,7 @@ export function UserAnalysis({ data, onBack }) {
                                         <div className="flex bg-[#6C5CE7]/5 p-1 rounded-xl gap-1 border border-[#6C5CE7]/10">
                                             {[
                                                 { id: 'latest', icon: Clock, label: 'latest' },
-                                                { id: 'density', icon: Zap, label: 'density' }
+                                                { id: 'intensity', icon: Zap, label: 'intensity' }
                                             ].map(option => (
                                                 <button key={option.id} onClick={() => setSortBy(option.id)} className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${sortBy === option.id ? 'bg-[#6C5CE7] text-white shadow-md' : 'text-[#6C5CE7]/50 hover:text-[#6C5CE7]'}`}>
                                                     <option.icon size={12} />

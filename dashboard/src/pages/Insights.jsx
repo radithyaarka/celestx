@@ -66,11 +66,13 @@ export function Insights({ onScanComplete }) {
       const triggered = topics.filter(t => t.keywords.some(kw => lowerText.includes(kw))).length;
       return (triggered / 9);
   };
+  const totalSeverityScore = history.reduce((a, b) => a + calculateItemSeverity(b.text), 0);
+  const avgSeverity = history.length > 0 ? ((totalSeverityScore / history.length) * 100).toFixed(1) : 0;
   
   const intensityTimeline = last7Days.map(date => {
       const dayHistory = history.filter(h => h.date && h.date.startsWith(date));
       if (dayHistory.length === 0) return 0;
-      // Using confidence (intensity) instead of keyword density
+      // Using confidence (intensity) instead of clinical intensity (was keyword density)
       return dayHistory.reduce((a, b) => a + (b.confidence || 0), 0) / dayHistory.length;
   });
 
@@ -118,9 +120,9 @@ export function Insights({ onScanComplete }) {
       {/* Hero Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         {[
-            { label: 'clinical intensity', val: `${avgIntensity}%`, color: 'text-rose-500', icon: ShieldAlert },
+            { label: 'clinical severity', val: `${avgSeverity}%`, color: 'text-rose-500', icon: ShieldAlert },
             { label: 'critical flags', val: highRisks.length, color: 'text-amber-500', icon: AlertCircle },
-            { label: 'model confidence', val: `${avgIntensity}%`, color: 'text-blue-500', icon: Brain },
+            { label: 'clinical intensity', val: `${avgIntensity}%`, color: 'text-blue-500', icon: Brain },
             { label: 'total arsip', val: totalScanned, color: 'text-emerald-500', icon: ActivityIcon }
         ].map((stat, i) => (
             <div key={i} className="space-y-1">
