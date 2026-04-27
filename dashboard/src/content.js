@@ -8,18 +8,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   else if (request.action === 'deep_scrape_profile') {
     const extractProfileInfo = () => {
         const findAvatar = () => {
-            // Priority 1: Main profile photo link
             const mainPhoto = document.querySelector('a[href$="/photo"] img');
             if (mainPhoto?.src) return mainPhoto.src;
-
-            // Priority 2: Testing alternative selectors
             const altPhoto = document.querySelector('[data-testid="UserProfileHeader-base"] img[src*="profile_images"]');
             if (altPhoto?.src) return altPhoto.src;
-
-            // Priority 3: Aria-label based search
             const ariaPhoto = document.querySelector('div[aria-label*="Profile photo"] img') || document.querySelector('div[aria-label*="Foto profil"] img');
             if (ariaPhoto?.src) return ariaPhoto.src;
-
             return "";
         };
 
@@ -30,51 +24,54 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             bio: document.querySelector('[data-testid="UserDescription"]')?.innerText || ""
         };
 
-        // Final fallback: Use avatar from an ORIGINAL tweet if header fails
         if (!info.avatarUrl) {
             const originalArticle = Array.from(document.querySelectorAll('article[data-testid="tweet"]'))
                 .find(art => !art.querySelector('[data-testid="socialContext"]'));
-            
             const tweetAvatar = originalArticle?.querySelector('[data-testid="Tweet-User-Avatar"] img');
             if (tweetAvatar) info.avatarUrl = tweetAvatar.src;
         }
-
         return info;
     };
 
-    let profileInfo = extractProfileInfo();
-    let scrapedTweetsMap = new Map();
-    let scrollCount = 0;
-    
-    const extract = () => {
-        const tweets = extractTweets();
-        tweets.forEach(t => {
-            if (!scrapedTweetsMap.has(t.text)) {
-                scrapedTweetsMap.set(t.text, t);
-            }
-        });
-    };
-    
-    extract();
-    
-    const scrollInterval = setInterval(() => {
-        const articles = document.querySelectorAll('article[data-testid="tweet"]');
-        if (articles.length > 0) {
-            articles[articles.length - 1].scrollIntoView(true); 
-        } else {
-            window.scrollBy(0, 1000);
-        }
-        setTimeout(extract, 500);
-        scrollCount++;
+    chrome.storage.local.get(['sentimenta_settings'], (result) => {
+        const settings = result.sentimenta_settings || {};
+        const targetDepth = request.targetDepth || settings.scanDepth || 50;
+        const maxScrolls = Math.max(60, targetDepth); // More generous scrolling
+
+        let profileInfo = extractProfileInfo();
+        let scrapedTweetsMap = new Map();
+        let scrollCount = 0;
         
-        if (scrollCount >= 40 || scrapedTweetsMap.size >= 50) {
-            clearInterval(scrollInterval);
-            sendResponse({ 
-                profile: profileInfo,
-                tweets: Array.from(scrapedTweetsMap.values()).slice(0, 50) 
+        const extract = () => {
+            const tweets = extractTweets();
+            tweets.forEach(t => {
+                if (!scrapedTweetsMap.has(t.text)) {
+                    scrapedTweetsMap.set(t.text, t);
+                }
             });
-        }
-    }, 1500);
+        };
+        
+        extract();
+        
+        const scrollInterval = setInterval(() => {
+            const articles = document.querySelectorAll('article[data-testid="tweet"]');
+            if (articles.length > 0) {
+                articles[articles.length - 1].scrollIntoView(true); 
+            } else {
+                window.scrollBy(0, 1000);
+            }
+            setTimeout(extract, 500);
+            scrollCount++;
+            
+            if (scrollCount >= maxScrolls || scrapedTweetsMap.size >= targetDepth) {
+                clearInterval(scrollInterval);
+                sendResponse({ 
+                    profile: profileInfo,
+                    tweets: Array.from(scrapedTweetsMap.values()).slice(0, targetDepth) 
+                });
+            }
+        }, 1500);
+    });
     
     return true;
   }

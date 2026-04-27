@@ -11,13 +11,14 @@ export function Settings() {
     enableNotifications: true,
     backendUrl: 'http://localhost:8000',
     confidenceThreshold: 15,
+    scanDepth: 50
   });
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     chrome.storage.local.get(['sentimenta_settings'], (storage) => {
       if (storage.sentimenta_settings) {
-        setSettings(storage.sentimenta_settings);
+        setSettings(prev => ({ ...prev, ...storage.sentimenta_settings }));
       }
     });
   }, []);
@@ -143,6 +144,39 @@ export function Settings() {
                             >
                                 <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-all ${settings.enableNotifications ? 'right-1' : 'left-1'}`} />
                             </button>
+                        </div>
+                    </div>
+
+                    <div className="h-px bg-black/5" />
+
+                    {/* Scan Depth Selection */}
+                    <div className="flex flex-col gap-6">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-6">
+                                <div className="bg-rose-500/10 p-4 rounded-2xl text-rose-500">
+                                    <Activity size={24} />
+                                </div>
+                                <div>
+                                    <p className="font-black text-xl text-[#2D3436]">deep scan depth</p>
+                                    <p className="text-xs text-slate-400 font-medium mt-1">jumlah tweet yang diambil saat melakukan intelligence scan.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-4 gap-4">
+                            {[20, 50, 100, 200].map((depth) => (
+                                <button 
+                                    key={depth}
+                                    onClick={() => setSettings({...settings, scanDepth: depth})}
+                                    className={`p-4 rounded-2xl border font-black transition-all ${
+                                        settings.scanDepth === depth 
+                                        ? 'bg-rose-500 text-white border-rose-500 shadow-lg shadow-rose-500/20' 
+                                        : 'bg-white text-slate-400 border-black/5 hover:border-rose-500/30'
+                                    }`}
+                                >
+                                    <span className="text-lg">{depth}</span>
+                                    <p className="text-[8px] uppercase tracking-widest mt-1 opacity-60">tweets</p>
+                                </button>
+                            ))}
                         </div>
                     </div>
 

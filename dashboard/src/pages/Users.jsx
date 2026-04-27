@@ -6,6 +6,15 @@ export function Users({ onSelectUser }) {
   const [analyzedUsers, setAnalyzedUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [scanningHandle, setScanningHandle] = useState(null);
+  const [settings, setSettings] = useState({ scanDepth: 50 });
+
+  useEffect(() => {
+    chrome.storage.local.get(['sentimenta_settings'], (storage) => {
+      if (storage.sentimenta_settings) {
+        setSettings(prev => ({ ...prev, ...storage.sentimenta_settings }));
+      }
+    });
+  }, []);
 
   useEffect(() => {
     const loadUsers = () => {
@@ -42,7 +51,10 @@ export function Users({ onSelectUser }) {
                 
                 // 2. Wait for profile to load, then send scrape message
                 setTimeout(() => {
-                    chrome.tabs.sendMessage(tab.id, { action: 'deep_scrape_profile' }, async (response) => {
+                    chrome.tabs.sendMessage(tab.id, { 
+                        action: 'deep_scrape_profile',
+                        targetDepth: settings?.scanDepth || 50 
+                    }, async (response) => {
                         // Close tab after scraping
                         chrome.tabs.remove(tab.id);
                         
@@ -170,7 +182,7 @@ export function Users({ onSelectUser }) {
                         )}
                     </button>
                 </form>
-                <p className="mt-4 text-[9px] text-slate-400 font-medium italic">*sistem akan otomatis membuka tab twitter dan melakukan analisis klinis mendalam pada 50 tweet terakhir.</p>
+                <p className="mt-4 text-[9px] text-slate-400 font-medium italic">*sistem akan otomatis membuka tab twitter dan melakukan analisis klinis mendalam pada {settings?.scanDepth || 50} tweet terakhir.</p>
             </div>
         </GlassCard>
 
@@ -186,9 +198,31 @@ export function Users({ onSelectUser }) {
             </GlassCard>
         ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {analyzedUsers.map((scan, idx) => {
-                const currentScore = scan.summary.average_score || scan.summary.average_severity || 0;
-                return (
+          {analyzedUsers.map((scan, idx) => {
+            // Helper to detect language heuristically
+            const detectLanguage = (text) => {
+                if (!text) return 'id';
+                const enWords = /\b(the|is|are|in|to|of|for|with|and|on|at|i|me|my|you|your|he|she|it)\b/gi;
+                const idWords = /\b(yang|di|ke|dari|ini|itu|dan|ada|saya|aku|kamu|lo|gw|ga|tidak|untuk)\b/gi;
+                const enMatches = (text.match(enWords) || []).length;
+                const idMatches = (text.match(idWords) || []).length;
+                return enMatches > idMatches ? 'en' : 'id';
+            };
+
+            // Calculate score using Hybrid Model (Global + Peak) / 2
+            const idTweets = (scan.details || []).filter(t => detectLanguage(t.text) === 'id');
+            const totalIdScore = idTweets.reduce((acc, curr) => acc + (Number(curr.score || curr.confidence) || 0), 0);
+            const globalAvg = totalIdScore / ((scan.details || []).length || 1);
+
+            const sortedScores = idTweets
+                .map(d => Number(d.score || d.confidence || 0))
+                .sort((a, b) => b - a);
+            const topScores = sortedScores.slice(0, 10);
+            const peakAvg = topScores.length > 0 ? topScores.reduce((a, b) => a + b, 0) / topScores.length : 0;
+
+            const currentScore = (globalAvg + peakAvg) / 2;
+
+            return (
                 <div 
                     key={idx} 
                     onClick={() => onSelectUser(scan)}

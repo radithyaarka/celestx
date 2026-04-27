@@ -56,9 +56,15 @@ export function Insights({ onScanComplete }) {
   };
   const dsmTopics = calculateTopics();
 
-  const avgIntensity = history.length > 0 
-    ? (history.reduce((a, b) => a + b.confidence, 0) / history.length * 100).toFixed(1) 
-    : 0;
+  // Helper to detect language heuristically
+  const detectLanguage = (text) => {
+    if (!text) return 'id';
+    const enWords = /\b(the|is|are|in|to|of|for|with|and|on|at|i|me|my|you|your|he|she|it)\b/gi;
+    const idWords = /\b(yang|di|ke|dari|ini|itu|dan|ada|saya|aku|kamu|lo|gw|ga|tidak|untuk)\b/gi;
+    const enMatches = (text.match(enWords) || []).length;
+    const idMatches = (text.match(idWords) || []).length;
+    return enMatches > idMatches ? 'en' : 'id';
+  };
 
   const calculateItemSeverity = (text) => {
       const lowerText = text.toLowerCase();
@@ -66,15 +72,29 @@ export function Insights({ onScanComplete }) {
       const triggered = topics.filter(t => t.keywords.some(kw => lowerText.includes(kw))).length;
       return (triggered / 9);
   };
-  const totalSeverityScore = history.reduce((a, b) => a + calculateItemSeverity(b.text), 0);
+
+  // Only consider ID tweets for population stats
+  const idHistory = history.filter(h => detectLanguage(h.text) === 'id');
+  const totalSeverityScore = idHistory.reduce((a, b) => a + calculateItemSeverity(b.text), 0);
+  
+  // Denominator stays total history to maintain proportion, but only sum ID scores
   const avgSeverity = history.length > 0 ? ((totalSeverityScore / history.length) * 100).toFixed(1) : 0;
   
   const intensityTimeline = last7Days.map(date => {
       const dayHistory = history.filter(h => h.date && h.date.startsWith(date));
       if (dayHistory.length === 0) return 0;
-      // Using confidence (intensity) instead of clinical intensity (was keyword density)
-      return dayHistory.reduce((a, b) => a + (b.confidence || 0), 0) / dayHistory.length;
+      
+      // Numerator: only sum confidence of ID tweets
+      const dayIdTweets = dayHistory.filter(h => detectLanguage(h.text) === 'id');
+      const dayTotalConfidence = dayIdTweets.reduce((a, b) => a + (b.confidence || 0), 0);
+      
+      // Denominator: total tweets for that day
+      return dayTotalConfidence / dayHistory.length;
   });
+
+  const avgIntensity = history.length > 0 
+    ? (idHistory.reduce((a, b) => a + (b.confidence || 0), 0) / history.length * 100).toFixed(1) 
+    : 0;
 
   const selfFocusKeywords = ['aku', 'saya', 'gue', 'gw', 'i', 'me', 'my', 'mine'];
   const otherFocusKeywords = ['kamu', 'anda', 'kalian', 'lo', 'lu', 'you', 'them', 'mereka'];

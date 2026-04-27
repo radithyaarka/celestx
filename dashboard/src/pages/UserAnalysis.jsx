@@ -6,17 +6,30 @@ import { dsmLexicon } from '../constants/lexicon';
 import { 
     User, Calendar, MessageSquare, ShieldAlert, 
     ArrowLeft, TrendingUp, Filter, AlertCircle, BarChart3, Clock, LayoutGrid, Share2,
-    Activity, Brain, Shield, Info, ExternalLink, Sparkles, FileText, Download, Zap, Trash2, Image as ImageIcon
+    Activity, Brain, Shield, Info, ExternalLink, Sparkles, FileText, Download, Zap, Trash2, Image as ImageIcon, Globe
 } from 'lucide-react';
 
 export function UserAnalysis({ data, onBack }) {
     const [filter, setFilter] = useState('all'); // 'all', 'original', 'retweets'
+    const [langFilter, setLangFilter] = useState('id'); // 'id' or 'all'
     const [sortBy, setSortBy] = useState('latest'); // 'latest' or 'intensity'
     
     useEffect(() => {
         const scrollContainer = document.querySelector('main')?.parentElement;
         if (scrollContainer) scrollContainer.scrollTo(0, 0);
     }, []);
+
+    // Helper to detect language heuristically
+    const detectLanguage = (text) => {
+        if (!text) return 'id';
+        const enWords = /\b(the|is|are|in|to|of|for|with|and|on|at|i|me|my|you|your|he|she|it)\b/gi;
+        const idWords = /\b(yang|di|ke|dari|ini|itu|dan|ada|saya|aku|kamu|lo|gw|ga|tidak|untuk)\b/gi;
+        
+        const enMatches = (text.match(enWords) || []).length;
+        const idMatches = (text.match(idWords) || []).length;
+        
+        return enMatches > idMatches ? 'en' : 'id';
+    };
 
     const handleDeleteScan = () => {
         if (!window.confirm(`Hapus seluruh data deep scan untuk ${data?.user?.handle}? Tindakan ini tidak dapat dibatalkan.`)) return;
@@ -50,21 +63,65 @@ export function UserAnalysis({ data, onBack }) {
     const summaryData = data.summary || {};
     const detailsData = Array.isArray(data.details) ? data.details : [];
     
-    const severityScore = Number(summaryData?.average_score || summaryData?.average_intensity || summaryData?.average_severity || 0);
+    // Dynamic Risk Score calculation based on language filter (Denominator = Total Scanned Tweets)
+    const dynamicSeverityScore = useMemo(() => {
+        const idTweets = detailsData.filter(t => detectLanguage(t.text) === 'id');
+        if (idTweets.length === 0) return 0;
+        
+        // 1. Global Average (Total ID Score / Total Scanned Tweets)
+        const totalIdScore = idTweets.reduce((acc, curr) => acc + (Number(curr.score || curr.confidence) || 0), 0);
+        const globalAvg = totalIdScore / (detailsData.length || 1);
+
+        // 2. Peak Average (Average of Top 10 ID tweets)
+        const sortedScores = idTweets
+            .map(d => Number(d.score || d.confidence || 0))
+            .sort((a, b) => b - a);
+        const topScores = sortedScores.slice(0, 10);
+        const peakAvg = topScores.reduce((a, b) => a + b, 0) / (topScores.length || 1);
+        
+        // 3. Hybrid Result
+        return (globalAvg + peakAvg) / 2;
+    }, [detailsData]); // Hybrid Risk Model (Global + Peak)
+
+    const severityScore = dynamicSeverityScore;
     const userAvatar = userData.avatarUrl || userData.profile_image_url || userData.profileImageUrl;
 
     const clinicalProfile = useMemo(() => {
         const counts = {};
+        
         detailsData.forEach(tweet => {
-            if (tweet.label && tweet.label !== 'normal') {
-                counts[tweet.label] = (counts[tweet.label] || 0) + 1;
+            if (detectLanguage(tweet.text) === 'en') return;
+
+            const text = (tweet.text || "").toLowerCase();
+            const isIndicated = tweet.label === 'INDICATED' || (Number(tweet.score || tweet.confidence) > 0.5);
+            
+            // Only search for symptoms if the AI actually indicates risk
+            if (isIndicated) {
+                let matchedId = null;
+                for (const category of dsmLexicon) {
+                    if (category.keywords.some(kw => text.includes(kw.toLowerCase()))) {
+                        matchedId = category.id;
+                        break;
+                    }
+                }
+
+                const finalLabel = matchedId || (tweet.label !== 'normal' ? tweet.label : null);
+
+                if (finalLabel) {
+                    counts[finalLabel] = (counts[finalLabel] || 0) + 1;
+                    tweet.matchedLabel = finalLabel;
+                }
+            } else {
+                // If not indicated by AI, ensure it doesn't show a symptom label
+                tweet.matchedLabel = null;
             }
         });
+
         return dsmLexicon.map(item => ({
             ...item,
             count: counts[item.id] || 0
         })).sort((a, b) => b.count - a.count);
-    }, [detailsData]);
+    }, [detailsData, langFilter]);
 
     const topIndicator = clinicalProfile[0]?.count > 0 ? clinicalProfile[0] : null;
 
@@ -91,10 +148,17 @@ export function UserAnalysis({ data, onBack }) {
         return new Date(d).getTime();
     };
 
+    const enTweetsCount = detailsData.filter(t => detectLanguage(t.text) === 'en').length;
+
     const filteredDetails = detailsData
         .filter(item => {
             const text = item?.text || "";
             const isRetweet = text.startsWith('RT ') || item?.isRetweet;
+            
+            // Language Filter
+            const lang = detectLanguage(text);
+            if (langFilter === 'id' && lang === 'en') return false;
+
             if (filter === 'original') return !isRetweet;
             if (filter === 'retweets') return isRetweet;
             return true;
@@ -153,11 +217,13 @@ export function UserAnalysis({ data, onBack }) {
                         <div className="w-full grid grid-cols-2 gap-4">
                             <div className="bg-slate-50 p-4 rounded-2xl border border-black/5">
                                 <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1.5 leading-none">total tweets</p>
-                                <p className="text-xl font-black text-[#2D3436]">{summaryData.total_tweets || 0}</p>
+                                <p className="text-xl font-black text-[#2D3436]">{detailsData.length}</p>
                             </div>
                             <div className="bg-slate-50 p-4 rounded-2xl border border-black/5">
                                 <p className="text-[9px] font-black text-[#6C5CE7] uppercase tracking-widest mb-1.5 leading-none">terindikasi</p>
-                                <p className="text-xl font-black text-rose-500">{summaryData.indicated_tweets || 0}</p>
+                                <p className="text-xl font-black text-rose-500">
+                                    {detailsData.filter(d => d.label === 'INDICATED').length}
+                                </p>
                             </div>
                         </div>
                     </GlassCard>
@@ -176,33 +242,44 @@ export function UserAnalysis({ data, onBack }) {
                                     <MessageSquare size={22} className="text-[#6C5CE7]" /> feed bukti klinis
                                 </h3>
                                 
-                                <div className="flex flex-wrap items-center gap-4">
-                                    {/* Filter Group */}
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">view:</span>
-                                        <div className="flex bg-slate-100 p-1 rounded-xl gap-1">
-                                            {['all', 'original', 'retweets'].map(type => (
-                                                <button key={type} onClick={() => setFilter(type)} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${filter === type ? 'bg-white text-[#6C5CE7] shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>{type}</button>
-                                            ))}
-                                        </div>
+                                <div className="flex flex-wrap items-center gap-3">
+                                    {/* View Filter */}
+                                    <div className="flex bg-slate-100 p-1 rounded-xl gap-0.5">
+                                        {['all', 'original', 'retweets'].map(type => (
+                                            <button key={type} onClick={() => setFilter(type)} className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${filter === type ? 'bg-white text-[#6C5CE7] shadow-sm' : 'text-slate-400 hover:text-slate-500'}`}>{type}</button>
+                                        ))}
                                     </div>
 
-                                    <div className="w-px h-6 bg-slate-200 hidden md:block" />
+                                    <div className="w-px h-4 bg-slate-200 hidden md:block" />
 
-                                    {/* Sort Group */}
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">sort by:</span>
-                                        <div className="flex bg-[#6C5CE7]/5 p-1 rounded-xl gap-1 border border-[#6C5CE7]/10">
-                                            {[
-                                                { id: 'latest', icon: Clock, label: 'latest' },
-                                                { id: 'intensity', icon: Zap, label: 'intensity' }
-                                            ].map(option => (
-                                                <button key={option.id} onClick={() => setSortBy(option.id)} className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${sortBy === option.id ? 'bg-[#6C5CE7] text-white shadow-md' : 'text-[#6C5CE7]/50 hover:text-[#6C5CE7]'}`}>
-                                                    <option.icon size={12} />
-                                                    {option.label}
-                                                </button>
-                                            ))}
-                                        </div>
+                                    {/* Language Filter */}
+                                    <div className="flex bg-blue-500/5 p-1 rounded-xl gap-0.5 border border-blue-500/10">
+                                        <button 
+                                            onClick={() => setLangFilter('id')} 
+                                            className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${langFilter === 'id' ? 'bg-blue-500 text-white shadow-sm' : 'text-blue-500/40 hover:text-blue-500'}`}
+                                        >
+                                            ID
+                                        </button>
+                                        <button 
+                                            onClick={() => setLangFilter('all')} 
+                                            className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${langFilter === 'all' ? 'bg-blue-500 text-white shadow-sm' : 'text-blue-500/40 hover:text-blue-500'}`}
+                                        >
+                                            ALL ({enTweetsCount})
+                                        </button>
+                                    </div>
+
+                                    <div className="w-px h-4 bg-slate-200 hidden md:block" />
+
+                                    {/* Sort Filter */}
+                                    <div className="flex bg-[#6C5CE7]/5 p-1 rounded-xl gap-0.5 border border-[#6C5CE7]/10">
+                                        {[
+                                            { id: 'latest', icon: Clock },
+                                            { id: 'intensity', icon: Zap }
+                                        ].map(option => (
+                                            <button key={option.id} onClick={() => setSortBy(option.id)} className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all ${sortBy === option.id ? 'bg-[#6C5CE7] text-white shadow-sm' : 'text-[#6C5CE7]/40 hover:text-[#6C5CE7]'}`}>
+                                                <option.icon size={14} />
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
                             </div>
@@ -217,8 +294,14 @@ export function UserAnalysis({ data, onBack }) {
                                     const tweetAvatar = item?.avatarUrl || item?.profile_image_url || userAvatar;
                                     const tweetName = item?.displayName || item?.name || userData.displayName;
                                     const tweetHandle = item?.handle || item?.screen_name || userData.handle;
+                                    const isRetweet = text.startsWith('RT ') || item?.isRetweet;
+                                    const isEnglish = detectLanguage(text) === 'en';
                                     return (
-                                        <div key={idx} className="p-6 rounded-[2rem] border border-black/[0.03] bg-slate-50/30 hover:bg-white hover:shadow-md hover:border-[#6C5CE7]/10 transition-all group relative overflow-hidden">
+                                        <div key={idx} className={`p-6 rounded-[2rem] border transition-all group relative overflow-hidden ${
+                                            isEnglish 
+                                            ? 'bg-[#F3F0FF] border-[#6C5CE7]/30 shadow-md scale-[0.98]' 
+                                            : 'bg-white border-black/5 hover:border-[#6C5CE7]/20 shadow-sm'
+                                        }`}>
                                             <div className="flex gap-4">
                                                 <div className="shrink-0">
                                                     {tweetAvatar ? <img src={tweetAvatar} alt="" className="w-10 h-10 rounded-full border border-black/5 shadow-sm" /> : <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-400"><User size={20} /></div>}
@@ -227,11 +310,52 @@ export function UserAnalysis({ data, onBack }) {
                                                     <div className="flex justify-between items-start">
                                                         <div>
                                                             <div className="flex items-center gap-1.5"><span className="text-sm font-black text-[#2D3436]">{tweetName}</span><span className="text-[10px] font-medium text-slate-400">{tweetHandle}</span></div>
-                                                            <div className="flex items-center gap-1.5 text-[9px] text-slate-300 font-black uppercase tracking-widest mt-0.5"><Clock size={10} /><span>{formatDate(item)}</span></div>
+                                                            <div className="flex items-center gap-3 mt-0.5">
+                                                                <div className="flex items-center gap-1.5 text-[9px] text-slate-300 font-black uppercase tracking-widest"><Clock size={10} /><span>{formatDate(item)}</span></div>
+                                                                {item?.handle && (
+                                                                    <a 
+                                                                        href={`https://x.com/${item.handle.replace('@', '')}`} 
+                                                                        target="_blank" 
+                                                                        rel="noopener noreferrer"
+                                                                        className="text-slate-300 hover:text-[#6C5CE7] transition-colors"
+                                                                        title="view original tweet"
+                                                                    >
+                                                                        <ExternalLink size={10} />
+                                                                    </a>
+                                                                )}
+                                                            </div>
                                                         </div>
-                                                        <div className="text-right"><p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-1">evidence strength</p><p className={`text-lg font-black ${getRiskColor(item?.score || 0)}`}>{((item?.score || 0) * 100).toFixed(0)}%</p></div>
+                                                        <div className="text-right">
+                                                            <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-1">
+                                                                {isEnglish ? 'language' : 'evidence strength'}
+                                                            </p>
+                                                            <p className={`text-[9px] font-black px-3 py-1 rounded-lg transition-all ${
+                                                                isEnglish 
+                                                                ? 'text-[#5849D4] bg-[#6C5CE7]/10 border border-[#6C5CE7]/20' 
+                                                                : getRiskColor(item?.score || 0)
+                                                            }`}>
+                                                                {isEnglish ? 'EXTERNAL LANGUAGE - NO SCORE' : `${((item?.score || 0) * 100).toFixed(0)}%`}
+                                                            </p>
+                                                        </div>
                                                     </div>
                                                     <p className="text-slate-600 text-[14px] leading-relaxed italic">"{text}"</p>
+                                                    
+                                                    {/* DSM Symptom Badge */}
+                                                    <div className="flex items-center gap-2 pt-2">
+                                                        <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 ${
+                                                            item.matchedLabel && !isEnglish
+                                                            ? 'bg-amber-100 text-amber-600 border border-amber-200'
+                                                            : 'bg-slate-100 text-slate-400 border border-slate-200'
+                                                        }`}>
+                                                            <Sparkles size={10} />
+                                                            {isEnglish ? (
+                                                                "external language context"
+                                                            ) : (
+                                                                dsmLexicon.find(l => l.id === item.matchedLabel)?.label || "no specific clinical indicator detected"
+                                                            )}
+                                                        </div>
+                                                    </div>
+
                                                     {tweetImg && <div className="mt-3 rounded-2xl overflow-hidden border border-black/5 shadow-sm bg-slate-100"><img src={tweetImg} alt="" className="w-full h-auto max-h-80 object-cover" /></div>}
                                                 </div>
                                             </div>
@@ -291,7 +415,9 @@ export function UserAnalysis({ data, onBack }) {
                             <div className="w-px h-8 bg-white/10" />
                             <div className="text-center">
                                 <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1">trend focus</p>
-                                <p className="text-xl font-black text-white/80 uppercase">{topIndicator?.label || "clinical"}</p>
+                                <p className="text-xl font-black text-white/80 uppercase">
+                                    {topIndicator ? topIndicator.label : (severityScore > 0.05 ? "UNSPECIFIED DISTRESS" : "STABLE / NORMAL")}
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -411,8 +537,37 @@ export function UserAnalysis({ data, onBack }) {
                     <div className="absolute top-0 right-0 p-8 opacity-10"><Sparkles size={120} /></div>
                     <div className="relative z-10 space-y-6">
                         <div className="flex items-center gap-3 text-[#74B9FF] font-black uppercase tracking-[0.2em] text-[10px]"><Sparkles size={16} /> ai clinical interpretation</div>
-                        <h3 className="text-3xl font-black tracking-tighter leading-tight">analisis menunjukkan prevalensi intensitas <span className="text-[#74B9FF]">{topIndicator?.label || "klinis"}</span> yang signifikan.</h3>
-                        <p className="text-slate-400 text-base leading-relaxed max-w-3xl font-medium">berdasarkan pola linguistik dalam {detailsData.length} aktivitas terakhir, sistem mendeteksi intensitas emosional yang {severityScore > 0.5 ? 'tinggi' : 'sedang'}. penggunaan kata kunci yang berkaitan dengan <span className="text-white">"{topIndicator?.keywords.slice(0, 3).join(', ')}"</span> menunjukkan adanya tekanan psikologis yang memerlukan perhatian lebih lanjut.</p>
+                        <h3 className="text-3xl font-black tracking-tighter leading-tight">
+                            {(() => {
+                                if (severityScore > 0.5) {
+                                    return topIndicator 
+                                        ? `analisis menunjukkan prevalensi ${topIndicator.label} yang sangat signifikan.` 
+                                        : "terdeteksi pola emosional yang sangat intens namun tidak spesifik secara klinis.";
+                                } else if (severityScore > 0.15) {
+                                    return topIndicator 
+                                        ? `terdeteksi indikasi ${topIndicator.label} dalam intensitas sedang.` 
+                                        : "terdeteksi fluktuasi emosional ringan yang bersifat umum.";
+                                } else {
+                                    return "analisis menunjukkan kondisi linguistik yang stabil dan rendah risiko.";
+                                }
+                            })()}
+                        </h3>
+                        <p className="text-slate-400 text-base leading-relaxed max-w-3xl font-medium">
+                            {(() => {
+                                const tweetCount = detailsData.length;
+                                if (severityScore > 0.5) {
+                                    return topIndicator 
+                                        ? `berdasarkan ${tweetCount} aktivitas terakhir, sistem mendeteksi tekanan psikologis yang tinggi. pola bahasa sangat kuat merujuk pada "${topIndicator.label}" dengan penggunaan kata kunci seperti "${topIndicator.keywords.slice(0, 2).join(', ')}". diperlukan perhatian profesional segera.`
+                                        : `sistem mendeteksi luapan emosional yang sangat intens dalam bahasa user. meskipun tidak merujuk pada gejala klinis spesifik, frekuensi nada negatif yang tinggi menunjukkan adanya distress berat yang memerlukan observasi lebih lanjut.`;
+                                } else if (severityScore > 0.15) {
+                                    return topIndicator 
+                                        ? `dalam ${tweetCount} aktivitas terakhir, terdapat indikasi gejala "${topIndicator.label}" yang muncul secara sporadis. intensitas risiko berada pada level moderat, menunjukkan adanya tekanan psikologis awal yang perlu dipantau.`
+                                        : `terdapat pola bahasa yang menunjukkan keresahan emosional umum dalam intensitas sedang. tidak ditemukan bukti klinis yang spesifik, namun fluktuasi ini mencerminkan kondisi psikologis yang sedang kurang stabil.`;
+                                } else {
+                                    return `berdasarkan pola linguistik dalam ${tweetCount} aktivitas terakhir, sistem tidak mendeteksi adanya indikator klinis yang menonjol. penggunaan bahasa cenderung netral, positif, dan tidak menunjukkan tekanan psikologis yang signifikan menurut kriteria DSM-5.`;
+                                }
+                            })()}
+                        </p>
                         <div className="pt-4 flex flex-wrap gap-4">
                             <button onClick={() => {}} className="bg-[#6C5CE7] hover:bg-[#5b4bc4] text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2"><Download size={16} /> download technical report</button>
                             <a href="https://www.psychiatry.org/psychiatrists/practice/dsm" target="_blank" rel="noopener noreferrer" className="bg-white/10 hover:bg-white/20 text-white border border-white/10 px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2"><FileText size={16} /> medical citation refs</a>
