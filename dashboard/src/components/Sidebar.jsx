@@ -13,11 +13,11 @@ export function Sidebar({ currentPage, setCurrentPage, previousPage }) {
   return (
     <aside className="w-72 bg-white border-r border-black/5 h-screen sticky top-0 flex-col p-8 hidden md:flex shrink-0">
       <div className="flex items-center gap-3 mb-12">
-        <div className="bg-[#6C5CE7] p-2.5 rounded-2xl shadow-xl shadow-[#6C5CE7]/20">
-          <Cloud className="text-white" size={24} />
+        <div className="p-1 w-12 h-12 flex items-center justify-center">
+          <img src="/logo.png" alt="CelestX" className="w-full h-full object-contain mix-blend-multiply" />
         </div>
         <div>
-          <h1 className="text-2xl font-black text-[#2D3436] tracking-tighter leading-none">celestx.</h1>
+          <h1 className="text-2xl font-black text-[#2D3436] tracking-tighter leading-none font-serif italic">celestx.</h1>
           <p className="text-[10px] text-slate-400 font-medium mt-1 leading-tight lowercase">spotting the clouds, before the storm.</p>
         </div>
       </div>

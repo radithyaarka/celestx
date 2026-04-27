@@ -62,8 +62,8 @@ function App() {
         {/* Mobile Header */}
         <header className="md:hidden flex justify-between items-center p-6 border-b border-black/5 bg-white/50 backdrop-blur-xl sticky top-0 z-50">
           <div className="flex items-center gap-3">
-            <div className="bg-[#6C5CE7] p-2 rounded-xl shadow-lg shadow-[#6C5CE7]/20">
-              <Cloud className="text-white" size={20} />
+            <div className="bg-white p-1 rounded-xl shadow-lg shadow-[#6C5CE7]/10 border border-black/5 overflow-hidden w-10 h-10 flex items-center justify-center">
+              <img src="/logo.png" alt="CelestX" className="w-full h-full object-cover" />
             </div>
             <h1 className="text-xl font-bold text-[#2D3436] tracking-tighter">celestx.</h1>
           </div>

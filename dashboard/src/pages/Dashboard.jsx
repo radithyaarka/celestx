@@ -82,12 +82,12 @@ export function Dashboard({ onNavigate }) {
         
         <div className="shrink-0 space-y-4">
           <div className="flex items-center gap-4">
-            <div className="bg-[#6C5CE7]/10 p-3 rounded-xl text-[#6C5CE7]">
-              <Cloud size={24} />
+            <div className="w-12 h-12 flex items-center justify-center">
+              <img src="/logo.png" alt="CelestX" className="w-full h-full object-contain mix-blend-multiply" />
             </div>
             <div>
-                <h1 className="text-4xl font-black text-[#2D3436] tracking-tighter leading-none">celestx.</h1>
-                <p className="text-slate-400 text-sm font-medium mt-1">monitor live v1.0</p>
+                <h1 className="text-4xl font-extrabold text-[#2D3436] tracking-tight leading-none font-serif italic">celestx.</h1>
+                <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">monitor live v1.0</p>
             </div>
           </div>
           <div className="h-px bg-black/5 w-full" />
