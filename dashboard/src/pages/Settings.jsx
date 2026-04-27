@@ -7,7 +7,7 @@ import {
 
 export function Settings() {
   const [settings, setSettings] = useState({
-    scanInterval: 10,
+    scanInterval: 2,
     enableNotifications: true,
     backendUrl: 'http://localhost:8000',
     confidenceThreshold: 15,
@@ -138,12 +138,14 @@ export function Settings() {
                                     <p className="text-xs text-slate-400 font-medium">alert desktop aktif.</p>
                                 </div>
                             </div>
-                            <button 
-                                onClick={() => setSettings({...settings, enableNotifications: !settings.enableNotifications})}
-                                className={`w-14 h-8 rounded-full transition-all relative ${settings.enableNotifications ? 'bg-[#6C5CE7]' : 'bg-slate-200'}`}
-                            >
-                                <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-all ${settings.enableNotifications ? 'right-1' : 'left-1'}`} />
-                            </button>
+                            <div className="flex items-center gap-4">
+                                <button 
+                                    onClick={() => setSettings({...settings, enableNotifications: !settings.enableNotifications})}
+                                    className={`w-14 h-8 rounded-full transition-all relative ${settings.enableNotifications ? 'bg-[#6C5CE7]' : 'bg-slate-200'}`}
+                                >
+                                    <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-all ${settings.enableNotifications ? 'right-1' : 'left-1'}`} />
+                                </button>
+                            </div>
                         </div>
                     </div>
 

@@ -71,7 +71,7 @@ export function UserAnalysis({ data, onBack }) {
         
         // 1. Global Average (Total ID Score / Total Scanned Tweets)
         const totalIdScore = idTweets.reduce((acc, curr) => acc + (Number(curr.score || curr.confidence) || 0), 0);
-        const globalAvg = totalIdScore / (detailsData.length || 1);
+        const globalAvg = totalIdScore / (idTweets.length || 1);
 
         // 2. Peak Average (Average of Top 10 ID tweets)
         const sortedScores = idTweets

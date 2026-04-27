@@ -1,10 +1,81 @@
-// src/content.js
+console.log("CELESTX: Content Script Loaded");
+
+// ─── Floating Toast Notification ─────────────────────────────────────────────
+function showToast(count) {
+    // Remove existing toast if any
+    const existing = document.getElementById('celestx-toast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.id = 'celestx-toast';
+    toast.style.cssText = `
+        position: fixed;
+        top: 24px;
+        right: 24px;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(108, 92, 231, 0.2);
+        border-left: 5px solid #6C5CE7;
+        padding: 16px 24px;
+        border-radius: 16px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        z-index: 999999;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        animation: celestx-slide-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        max-width: 350px;
+    `;
+
+    toast.innerHTML = `
+        <div style="width: 40px; height: 40px; flex-shrink: 0; background: white; padding: 4px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: center; overflow: hidden;">
+            <img src="${chrome.runtime.getURL('logo.png')}" style="width: 100%; height: 100%; object-fit: contain; mix-blend-multiply;" />
+        </div>
+        <div style="flex-grow: 1;">
+            <p style="margin: 0; font-family: Georgia, serif; font-style: italic; font-weight: 900; color: #2D3436; font-size: 16px; letter-spacing: -0.02em;">celestx.</p>
+            <p style="margin: 2px 0 0 0; color: #636E72; font-size: 10px; font-weight: 600; line-height: 1.4; text-transform: lowercase;">terdeteksi <span style="color: #6C5CE7; font-weight: 800;">${count} tweet</span> terindikasi depresi.</p>
+        </div>
+        <button id="celestx-see-btn" style="background: #6C5CE7; color: white; border: none; padding: 8px 16px; border-radius: 10px; font-weight: 900; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3);">
+            see
+        </button>
+    `;
+
+    toast.querySelector('#celestx-see-btn').onclick = () => {
+        chrome.runtime.sendMessage({ action: 'open_dashboard' });
+    };
+
+    const style = document.createElement('style');
+    style.innerHTML = `
+        @keyframes celestx-slide-in {
+            from { transform: translateX(100%) scale(0.9); opacity: 0; }
+            to { transform: translateX(0) scale(1); opacity: 1; }
+        }
+        @keyframes celestx-fade-out {
+            from { transform: translateX(0) scale(1); opacity: 1; }
+            to { transform: translateX(10px) scale(0.95); opacity: 0; }
+        }
+    `;
+    document.head.appendChild(style);
+    document.body.appendChild(toast);
+
+    // Auto remove after 4 seconds
+    setTimeout(() => {
+        toast.style.animation = 'celestx-fade-out 0.5s ease forwards';
+        setTimeout(() => toast.remove(), 500);
+    }, 4000);
+}
 
 // ─── Manual scrape on demand ─────────────────────────────────────────────────
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  console.log("CELESTX: Message received:", request.action);
   if (request.action === 'scrape_tweets') {
     sendResponse({ tweets: extractTweets() });
   } 
+  else if (request.action === 'show_toast') {
+    console.log("CELESTX: Showing toast for count:", request.count);
+    showToast(request.count);
+  }
   else if (request.action === 'deep_scrape_profile') {
     const extractProfileInfo = () => {
         const findAvatar = () => {
@@ -168,16 +239,19 @@ let autoScanTimer = null;
 
 function startAutoScan() {
     chrome.storage.local.get(['sentimenta_settings'], (s) => {
-        const interval = (s.sentimenta_settings?.scanInterval || 10) * 1000;
+        const settings = s.sentimenta_settings || {};
+        // Default to 2 seconds if not set, much better than 10s
+        const interval = (settings.scanInterval || 2) * 1000;
+        
         if (autoScanTimer) clearInterval(autoScanTimer);
         autoScanTimer = setInterval(() => {
             const tweets = extractTweets();
-            const newTweets = tweets.filter(t => !seenTweets.has(t.text));
+            const newTweets = tweets.filter(t => t.text && !seenTweets.has(t.text));
             if (newTweets.length > 0) {
                 newTweets.forEach(t => seenTweets.add(t.text));
                 chrome.runtime.sendMessage({ action: 'auto_scan_result', tweets: newTweets });
             }
-        }, interval);
+        }, Math.max(1000, interval)); // Safety minimum of 1s
     });
 }
 

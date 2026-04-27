@@ -1,6 +1,11 @@
 // background.js
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === 'open_dashboard') {
+        chrome.tabs.create({ url: 'index.html' });
+        return;
+    }
+    
     if (request.action === 'manual_scan' || request.action === 'auto_scan_result') {
         chrome.storage.local.get(['backendUrl', 'sentimenta_settings'], async (storage) => {
             const backendUrl = storage.backendUrl || 'http://localhost:8000';
@@ -30,6 +35,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 });
                 const result = await res.json();
 
+                const detectLanguage = (text) => {
+                    if (!text) return 'id';
+                    const enWords = /\b(the|is|are|in|to|of|for|with|and|on|at|i|me|my|you|your|he|she|it)\b/gi;
+                    const idWords = /\b(yang|di|ke|dari|ini|itu|dan|ada|saya|aku|kamu|lo|gw|ga|tidak|untuk)\b/gi;
+                    const enMatches = (text.match(enWords) || []).length;
+                    const idMatches = (text.match(idWords) || []).length;
+                    return enMatches > idMatches ? 'en' : 'id';
+                };
+
                 const allTweets = result.details.map(item => {
                     const originalTweet = tweets[item.tweet_id - 1];
                     return {
@@ -42,27 +56,31 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                         images: originalTweet?.images || [],
                         date: originalTweet?.timestamp || new Date().toISOString()
                     };
-                });
+                }).filter(t => detectLanguage(t.text) === 'id'); // <--- FILTER HERE
 
-                const indicatedTweets = allTweets.filter(t => t.label === "INDICATED");
+                const idOnlyTweets = allTweets.filter(t => detectLanguage(t.text) === 'id');
+                const indicatedTweets = idOnlyTweets.filter(t => t.label === "INDICATED");
 
-                chrome.storage.local.get(['sentimenta_history', 'sentimenta_total_scanned'], (storage) => {
+                chrome.storage.local.get(['sentimenta_history', 'sentimenta_total_scanned', 'sentimenta_id_scanned'], (storage) => {
                     const history = storage.sentimenta_history || [];
                     const newHistory = [...indicatedTweets, ...history].slice(0, 100);
                     const currentTotal = storage.sentimenta_total_scanned || 0;
+                    const currentIdTotal = storage.sentimenta_id_scanned || 0;
 
                     chrome.storage.local.set({ 
                         sentimenta_history: newHistory,
-                        sentimenta_total_scanned: currentTotal + allTweets.length
+                        sentimenta_total_scanned: currentTotal + allTweets.length, // All languages for throughput
+                        sentimenta_id_scanned: currentIdTotal + idOnlyTweets.length // ID only for clinical rate
                     });
 
                     if (indicatedTweets.length > 0 && settings.notifications !== false) {
-                        chrome.notifications.create({
-                            type: 'basic',
-                            iconUrl: 'icon48.png',
-                            title: 'celestx. detection',
-                            message: `spotted ${indicatedTweets.length} risky items on your timeline.`
-                        });
+                        // Send message to the tab to show a floating toast
+                        if (sender.tab?.id) {
+                            chrome.tabs.sendMessage(sender.tab.id, { 
+                                action: 'show_toast', 
+                                count: indicatedTweets.length 
+                            });
+                        }
                     }
                 });
 

@@ -9,14 +9,16 @@ export function Dashboard({ onNavigate }) {
   const [lastScan, setLastScan] = useState(null);
   const [history, setHistory] = useState([]);
   const [totalScanned, setTotalScanned] = useState(0);
+  const [idScanned, setIdScanned] = useState(0);
   const [scanning, setScanning] = useState(false);
   const [backendStatus, setBackendStatus] = useState('checking'); 
 
   const refreshData = useCallback(() => {
     if (window.chrome && chrome.storage) {
-      chrome.storage.local.get(['sentimenta_history', 'lastScan', 'sentimenta_total_scanned'], (storage) => {
+      chrome.storage.local.get(['sentimenta_history', 'lastScan', 'sentimenta_total_scanned', 'sentimenta_id_scanned'], (storage) => {
         setHistory(storage.sentimenta_history || []);
         setTotalScanned(storage.sentimenta_total_scanned || 0);
+        setIdScanned(storage.sentimenta_id_scanned || 0);
         if (storage.lastScan) setLastScan(storage.lastScan);
       });
     }
@@ -63,15 +65,27 @@ export function Dashboard({ onNavigate }) {
     return 'text-rose-500';
   };
 
-  const indicated = history.filter(h => h.label === 'INDICATED');
-  const uniqueUsers = [...new Set(history.map(h => h.handle).filter(Boolean))].length;
+  const detectLanguage = (text) => {
+    if (!text) return 'id';
+    const enWords = /\b(the|is|are|in|to|of|for|with|and|on|at|i|me|my|you|your|he|she|it)\b/gi;
+    const idWords = /\b(yang|di|ke|dari|ini|itu|dan|ada|saya|aku|kamu|lo|gw|ga|tidak|untuk)\b/gi;
+    const enMatches = (text.match(enWords) || []).length;
+    const idMatches = (text.match(idWords) || []).length;
+    return enMatches > idMatches ? 'en' : 'id';
+  };
+
+  const idHistory = history.filter(h => detectLanguage(h.text) === 'id');
+  const indicated = idHistory.filter(h => h.label === 'INDICATED');
+  const uniqueUsers = [...new Set(idHistory.map(h => h.handle).filter(Boolean))].length;
   const recentAlerts = indicated.slice(0, 10);
-  const alertRate = totalScanned > 0 ? ((indicated.length / totalScanned) * 100).toFixed(0) : 0;
   
-  const totalIndicatedConfidence = history.reduce((a, b) => a + (b.confidence || 0), 0);
-  const estimatedNormalCount = Math.max(0, totalScanned - history.length);
-  const avgConfidence = totalScanned > 0 
-    ? (((totalIndicatedConfidence + (estimatedNormalCount * 0.03)) / totalScanned) * 100).toFixed(1) 
+  // Rate calculation using Indonesian-only base
+  const alertRate = idScanned > 0 ? ((indicated.length / idScanned) * 100).toFixed(0) : 0;
+  
+  const totalIndicatedConfidence = idHistory.reduce((a, b) => a + (b.confidence || 0), 0);
+  const estimatedNormalCount = Math.max(0, idScanned - idHistory.length);
+  const avgConfidence = idScanned > 0 
+    ? (((totalIndicatedConfidence + (estimatedNormalCount * 0.03)) / idScanned) * 100).toFixed(1) 
     : 0;
 
   return (
@@ -99,15 +113,16 @@ export function Dashboard({ onNavigate }) {
             <div className="p-2 bg-[#6C5CE7]/10 rounded-lg text-[#6C5CE7]"><Activity size={14} /></div>
             <div>
                 <div className="flex items-center gap-1">
-                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-none">scanned</p>
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-none">total scanned</p>
                     <div className="relative group/info">
                         <Info size={10} className="text-slate-300" />
                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-40 p-2.5 bg-[#2D3436] text-white text-[9px] font-medium leading-relaxed rounded-xl opacity-0 group-hover/info:opacity-100 transition-all pointer-events-none z-[100] shadow-2xl border border-white/10 text-center lowercase">
-                            total tweet yang telah diproses oleh sistem celestx.
+                            total tweet yang telah diproses oleh sistem celestx (termasuk bahasa inggris).
                         </div>
                     </div>
                 </div>
                 <p className="text-xl font-black text-[#2D3436] mt-1">{totalScanned}</p>
+                <p className="text-[8px] text-slate-400 font-black uppercase tracking-tighter">all languages</p>
             </div>
           </div>
           <div className="bg-white border border-black/5 p-4 rounded-xl shadow-sm flex items-center gap-3 relative group/tip overflow-visible">

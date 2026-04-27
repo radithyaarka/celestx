@@ -26,5 +26,11 @@
       "matches": ["*://*.twitter.com/*", "*://*.x.com/*"],
       "js": ["src/content.js"]
     }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["logo.png"],
+      "matches": ["*://*.twitter.com/*", "*://*.x.com/*"]
+    }
   ]
 }
