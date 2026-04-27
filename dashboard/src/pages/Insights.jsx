@@ -128,31 +128,42 @@ export function Insights({ onScanComplete }) {
 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3">
-             <div className="bg-[#6C5CE7]/10 p-2.5 rounded-xl text-[#6C5CE7]"><BarChart3 size={20} /></div>
-             <h2 className="text-3xl font-black text-[#2D3436] tracking-tighter leading-none">insights hub.</h2>
+        <div className="space-y-2">
+          <div className="flex items-center gap-4">
+             <div className="bg-[#6C5CE7]/10 p-3 rounded-xl text-[#6C5CE7] shadow-sm"><BarChart3 size={24} /></div>
+             <h2 className="text-4xl font-black text-[#2D3436] tracking-tighter leading-none">insights hub.</h2>
           </div>
-          <p className="text-slate-400 text-xs font-medium pl-1">data perilaku klinis dsm-5.</p>
+          <p className="text-slate-400 text-sm font-medium pl-16">data perilaku klinis dsm-5.</p>
         </div>
       </div>
 
       {/* Hero Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         {[
-            { label: 'clinical severity', val: `${avgSeverity}%`, color: 'text-rose-500', icon: ShieldAlert },
-            { label: 'critical flags', val: highRisks.length, color: 'text-amber-500', icon: AlertCircle },
-            { label: 'clinical intensity', val: `${avgIntensity}%`, color: 'text-blue-500', icon: Brain },
-            { label: 'total arsip', val: totalScanned, color: 'text-emerald-500', icon: ActivityIcon }
-        ].map((stat, i) => (
-            <div key={i} className="space-y-1">
-                <div className={`flex items-center gap-2 ${stat.color}`}>
-                    <stat.icon size={12} />
-                    <p className="text-[9px] font-black uppercase tracking-widest">{stat.label}</p>
+            { label: 'clinical severity', val: `${avgSeverity}%`, color: 'text-rose-500', icon: ShieldAlert, info: 'tingkat keparahan indikasi depresi secara keseluruhan dari semua data.' },
+            { label: 'critical flags', val: highRisks.length, color: 'text-amber-500', icon: AlertCircle, info: 'jumlah tweet dengan tingkat risiko klinis yang sangat tinggi atau darurat.' },
+            { label: 'clinical intensity', val: `${avgIntensity}%`, color: 'text-blue-500', icon: Brain, info: 'rata-rata kekuatan dan kejelasan gejala pada tweet yang terindikasi.' },
+            { label: 'total arsip', val: totalScanned, color: 'text-emerald-500', icon: ActivityIcon, info: 'total seluruh data riwayat yang tersimpan dan digunakan untuk analisis ini.' }
+        ].map((stat, i) => {
+            const alignClass = i === 3 ? 'right-0 text-right' : (i === 0 ? 'left-0 text-left' : 'left-1/2 -translate-x-1/2 text-center');
+            return (
+                <div key={i} className="space-y-2">
+                    <div className={`flex items-center gap-1.5 ${stat.color}`}>
+                        <stat.icon size={12} />
+                        <div className="flex items-center gap-1">
+                            <p className="text-[9px] font-black uppercase tracking-widest leading-none">{stat.label}</p>
+                            <div className="relative group/info">
+                                <Info size={10} className={`${stat.color} opacity-60 cursor-help`} />
+                                <div className={`absolute bottom-full ${alignClass} mb-2 w-48 p-3 bg-[#2D3436] text-white text-[10px] font-medium leading-relaxed rounded-xl opacity-0 group-hover/info:opacity-100 transition-all pointer-events-none z-[100] shadow-2xl border border-white/10 lowercase`}>
+                                    {stat.info}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <p className="text-3xl font-black text-[#2D3436] tracking-tighter leading-none">{stat.val}</p>
                 </div>
-                <p className="text-3xl font-black text-[#2D3436] tracking-tighter">{stat.val}</p>
-            </div>
-        ))}
+            );
+        })}
       </div>
 
       <div className="grid lg:grid-cols-12 gap-8">

@@ -120,7 +120,7 @@ export function History({ onNavigate, onScanComplete }) {
             <div className="bg-[#6C5CE7]/10 p-3 rounded-xl text-[#6C5CE7] shadow-sm"><HistoryIcon size={24} /></div>
             <h2 className="text-4xl font-black text-[#2D3436] tracking-tighter leading-none">archive vault.</h2>
           </div>
-          <p className="text-slate-400 text-sm font-medium">manajemen data intelijen untuk pola perilaku terdeteksi.</p>
+          <p className="text-slate-400 text-sm font-medium pl-16">manajemen data intelijen untuk pola perilaku terdeteksi.</p>
         </div>
         
         <div className="flex items-center gap-3 self-start md:self-end">
@@ -215,7 +215,7 @@ export function History({ onNavigate, onScanComplete }) {
 
                 <div className="flex flex-row lg:flex-col items-center justify-center gap-6 shrink-0 lg:border-l lg:pl-10 lg:min-w-[200px] bg-slate-50/50 -m-8 lg:m-0 p-8 lg:p-0">
                   <div className="text-center flex-1 lg:flex-none">
-                    <p className="text-[10px] text-slate-400 uppercase tracking-widest font-black mb-1.5">intensitas klinis</p>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-widest font-black mb-1.5">intensity</p>
                     <p className={`font-black text-5xl ${getRiskColor(item.confidence)}`}>{(item.confidence * 100).toFixed(0)}<span className="text-2xl">%</span></p>
                   </div>
 

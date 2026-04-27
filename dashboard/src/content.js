@@ -1,7 +1,77 @@
 console.log("CELESTX: Content Script Loaded");
 
+// ─── Floating Context Badge (Near Tweet) ───────────────────────────────────
+function showContextBadge(targetEl, matchedText = null) {
+    // Remove existing if any
+    const existing = document.getElementById('celestx-context-badge');
+    if (existing) existing.remove();
+
+    const badge = document.createElement('div');
+    badge.id = 'celestx-context-badge';
+    
+    // Position it near the top right of the tweet, avoiding the 3-dots menu and main text
+    badge.style.cssText = `
+        position: absolute;
+        top: 12px;
+        right: 60px;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(8px);
+        color: #6C5CE7;
+        border: 1px solid rgba(108, 92, 231, 0.3);
+        padding: 6px 12px;
+        border-radius: 100px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 10px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        cursor: pointer;
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08), 0 0 15px rgba(108, 92, 231, 0.15);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        animation: celestx-pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        transition: all 0.2s ease;
+    `;
+
+    badge.onmouseenter = () => {
+        badge.style.background = '#6C5CE7';
+        badge.style.color = 'white';
+        badge.style.transform = 'scale(1.05)';
+    };
+    badge.onmouseleave = () => {
+        badge.style.background = 'rgba(255, 255, 255, 0.9)';
+        badge.style.color = '#6C5CE7';
+        badge.style.transform = 'scale(1)';
+    };
+
+    badge.innerHTML = `
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+        lihat analisis
+    `;
+
+    // Make target element relative so badge can be positioned inside it
+    targetEl.style.position = 'relative';
+    targetEl.appendChild(badge);
+
+    badge.onclick = (e) => {
+        e.stopPropagation();
+        chrome.runtime.sendMessage({ action: 'open_dashboard', highlightText: matchedText });
+        badge.remove();
+    };
+
+    // Auto remove after 5s
+    setTimeout(() => {
+        if (badge.parentNode) {
+            badge.style.animation = 'celestx-fade-out 0.5s ease forwards';
+            setTimeout(() => { if (badge.parentNode) badge.remove(); }, 500);
+        }
+    }, 5000);
+}
+
 // ─── Floating Toast Notification ─────────────────────────────────────────────
-function showToast(count) {
+function showToast(count, detectedTexts = []) {
     // Remove existing toast if any
     const existing = document.getElementById('celestx-toast');
     if (existing) existing.remove();
@@ -41,29 +111,72 @@ function showToast(count) {
         </button>
     `;
 
-    toast.querySelector('#celestx-see-btn').onclick = () => {
-        chrome.runtime.sendMessage({ action: 'open_dashboard' });
+    toast.querySelector('#celestx-see-btn').onclick = async () => {
+        // Find and highlight tweets
+        const tweetElements = document.querySelectorAll('article[data-testid="tweet"]');
+        let firstMatch = null;
+        let matchedTextForDashboard = null;
+
+        tweetElements.forEach(el => {
+            const text = el.innerText || "";
+            const matchedText = detectedTexts.find(dt => text.includes(dt));
+            if (matchedText) {
+                el.style.transition = "all 0.5s ease";
+                el.style.animation = "celestx-highlight 1.5s ease-in-out infinite alternate";
+                
+                if (!firstMatch) {
+                    firstMatch = el;
+                    matchedTextForDashboard = matchedText; // Save for dashboard highlight
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                
+                // Clear highlight after 8s
+                setTimeout(() => { el.style.animation = ""; }, 8000);
+            }
+        });
+
+        if (firstMatch) {
+            // Show the context badge near the tweet
+            showContextBadge(firstMatch, matchedTextForDashboard);
+        }
+
+        // Auto remove main toast since we found the target
+        toast.style.animation = 'celestx-fade-out 0.5s ease forwards';
+        setTimeout(() => toast.remove(), 500);
     };
 
     const style = document.createElement('style');
-    style.innerHTML = `
-        @keyframes celestx-slide-in {
-            from { transform: translateX(100%) scale(0.9); opacity: 0; }
-            to { transform: translateX(0) scale(1); opacity: 1; }
-        }
-        @keyframes celestx-fade-out {
-            from { transform: translateX(0) scale(1); opacity: 1; }
-            to { transform: translateX(10px) scale(0.95); opacity: 0; }
-        }
-    `;
-    document.head.appendChild(style);
+    if (!document.getElementById('celestx-global-styles')) {
+        style.id = 'celestx-global-styles';
+        style.innerHTML = `
+            @keyframes celestx-slide-in {
+                from { transform: translateX(100%) scale(0.9); opacity: 0; }
+                to { transform: translateX(0) scale(1); opacity: 1; }
+            }
+            @keyframes celestx-fade-out {
+                from { transform: translateX(0) scale(1); opacity: 1; }
+                to { transform: translateX(10px) scale(0.95); opacity: 0; }
+            }
+            @keyframes celestx-highlight {
+                from { box-shadow: 0 0 0px rgba(108, 92, 231, 0); background: transparent; }
+                to { box-shadow: 0 0 30px rgba(108, 92, 231, 0.4); background: rgba(108, 92, 231, 0.05); }
+            }
+            @keyframes celestx-pop-in {
+                0% { transform: scale(0) translateY(20px); opacity: 0; }
+                100% { transform: scale(1) translateY(0); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
     document.body.appendChild(toast);
 
     // Auto remove after 4 seconds
     setTimeout(() => {
-        toast.style.animation = 'celestx-fade-out 0.5s ease forwards';
-        setTimeout(() => toast.remove(), 500);
-    }, 4000);
+        if (document.body.contains(toast)) {
+            toast.style.animation = 'celestx-fade-out 0.5s ease forwards';
+            setTimeout(() => { if (document.body.contains(toast)) toast.remove(); }, 500);
+        }
+    }, 5000);
 }
 
 // ─── Manual scrape on demand ─────────────────────────────────────────────────
@@ -74,7 +187,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   } 
   else if (request.action === 'show_toast') {
     console.log("CELESTX: Showing toast for count:", request.count);
-    showToast(request.count);
+    showToast(request.count, request.detectedTexts);
   }
   else if (request.action === 'deep_scrape_profile') {
     const extractProfileInfo = () => {

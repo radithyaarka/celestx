@@ -6,7 +6,7 @@ import { dsmLexicon } from '../constants/lexicon';
 import { 
     User, Calendar, MessageSquare, ShieldAlert, X,
     ArrowLeft, TrendingUp, Filter, AlertCircle, BarChart3, Clock, LayoutGrid, Share2,
-    Activity, Brain, Shield, Info, ExternalLink, Sparkles, FileText, Download, Zap, Trash2, Image as ImageIcon, Globe
+    Activity, Brain, Shield, Info, ExternalLink, Sparkles, FileText, Download, Zap, Trash2, Image as ImageIcon, Globe, Repeat
 } from 'lucide-react';
 
 export function UserAnalysis({ data, onBack }) {
@@ -328,7 +328,7 @@ export function UserAnalysis({ data, onBack }) {
                                                         </div>
                                                         <div className="text-right">
                                                             <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-1">
-                                                                {isEnglish ? 'language' : 'evidence strength'}
+                                                                {isEnglish ? 'language' : 'intensity'}
                                                             </p>
                                                             <p className={`text-[9px] font-black px-3 py-1 rounded-lg transition-all ${
                                                                 isEnglish 
@@ -660,7 +660,11 @@ export function UserAnalysis({ data, onBack }) {
                                                             <div className="flex items-center gap-2">
                                                                 <span className="text-sm font-black text-[#2D3436] leading-none">{authorName}</span>
                                                                 <span className="text-[10px] font-medium text-slate-400">{authorHandle}</span>
-                                                                {isRetweet && <span className="text-[8px] font-black bg-indigo-50 text-indigo-500 px-2 py-0.5 rounded-full uppercase tracking-widest">Retweet</span>}
+                                                                {isRetweet && (
+                                                                    <span className="bg-[#6C5CE7]/10 text-[#6C5CE7] text-[8px] font-black uppercase px-2 py-0.5 rounded-md flex items-center gap-1 border border-[#6C5CE7]/10 tracking-widest">
+                                                                        <Repeat size={8} /> retweet
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                             <div className="flex items-center gap-1.5 mt-1 text-[9px] text-slate-300 font-black uppercase tracking-widest">
                                                                 <Clock size={10} /> {formatDate(item)}

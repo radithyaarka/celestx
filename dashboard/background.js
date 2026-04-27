@@ -2,7 +2,24 @@
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'open_dashboard') {
-        chrome.tabs.create({ url: 'index.html' });
+        let urlPath = 'index.html';
+        if (request.highlightText) {
+            urlPath += `?highlight=${encodeURIComponent(request.highlightText)}`;
+        }
+        const targetUrl = chrome.runtime.getURL(urlPath);
+        const dashboardBaseUrl = chrome.runtime.getURL('index.html');
+
+        chrome.tabs.query({}, (tabs) => {
+            const existingTab = tabs.find(t => t.url && t.url.startsWith(dashboardBaseUrl));
+            if (existingTab) {
+                // Focus existing tab and update its URL to trigger the highlight
+                chrome.tabs.update(existingTab.id, { active: true, url: targetUrl });
+                chrome.windows.update(existingTab.windowId, { focused: true });
+            } else {
+                // Create new tab
+                chrome.tabs.create({ url: targetUrl });
+            }
+        });
         return;
     }
     
@@ -26,8 +43,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
             if (tweets.length === 0) return;
 
+            const seenStorage = await chrome.storage.local.get('global_seen_tweets');
+            const seenSet = new Set(seenStorage.global_seen_tweets || []);
+            const novelTweets = tweets.filter(t => t.text && !seenSet.has(t.text));
+            
+            if (novelTweets.length === 0) return;
+
+            // Update the global seen cache (keep last 1000)
+            novelTweets.forEach(t => seenSet.add(t.text));
+            chrome.storage.local.set({ global_seen_tweets: Array.from(seenSet).slice(-1000) });
+
             try {
-                const tweetTexts = tweets.map(t => t.text);
+                const tweetTexts = novelTweets.map(t => t.text);
                 const res = await fetch(`${backendUrl}/predict-user`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -45,7 +72,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 };
 
                 const allTweets = result.details.map(item => {
-                    const originalTweet = tweets[item.tweet_id - 1];
+                    const originalTweet = novelTweets[item.tweet_id - 1];
                     return {
                         text: originalTweet?.text || '',
                         confidence: item.score,
@@ -56,7 +83,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                         images: originalTweet?.images || [],
                         date: originalTweet?.timestamp || new Date().toISOString()
                     };
-                }).filter(t => detectLanguage(t.text) === 'id'); // <--- FILTER HERE
+                }); // Removed the filter here so it represents ALL languages
 
                 const idOnlyTweets = allTweets.filter(t => detectLanguage(t.text) === 'id');
                 const indicatedTweets = idOnlyTweets.filter(t => t.label === "INDICATED");
@@ -74,11 +101,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     });
 
                     if (indicatedTweets.length > 0 && settings.notifications !== false) {
-                        // Send message to the tab to show a floating toast
+                        // Send message to the tab to show a floating toast with tweet identifiers
                         if (sender.tab?.id) {
                             chrome.tabs.sendMessage(sender.tab.id, { 
                                 action: 'show_toast', 
-                                count: indicatedTweets.length 
+                                count: indicatedTweets.length,
+                                detectedTexts: indicatedTweets.map(t => t.text)
                             });
                         }
                     }
