@@ -207,7 +207,7 @@ export function History({ onNavigate, onScanComplete }) {
                         )}
 
                         <div className="flex items-center gap-4 text-[9px] text-slate-300 font-black uppercase tracking-widest pt-1">
-                            <div className="flex items-center gap-1.5"><Clock size={12} className="text-[#6C5CE7]/60" /><span>{item.date ? new Date(item.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'unknown'}</span></div>
+                            <div className="flex items-center gap-1.5"><Clock size={12} className="text-[#6C5CE7]/60" /><span>{item.date ? new Date(item.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'unknown'}</span></div>
                         </div>
                     </div>
                   </div>
@@ -222,7 +222,7 @@ export function History({ onNavigate, onScanComplete }) {
                   <div className="w-full max-w-[160px] lg:max-w-none">
                     {cachedScans[item.handle] ? (
                       <button
-                        onClick={() => onNavigate('user-analysis', cachedScans[item.handle])}
+                        onClick={() => onScanComplete(cachedScans[item.handle])}
                         className="w-full flex items-center justify-center gap-2 px-5 py-4 rounded-2xl bg-[#6C5CE7] text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#6C5CE7]/20 hover:scale-[1.02] transition-all"
                       >
                         <BarChart3 size={16} /> view report

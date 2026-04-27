@@ -4,7 +4,7 @@ import { CircularMeter } from '../components/CircularMeter';
 import { GlassCard } from '../components/GlassCard';
 import { dsmLexicon } from '../constants/lexicon';
 import { 
-    User, Calendar, MessageSquare, ShieldAlert, 
+    User, Calendar, MessageSquare, ShieldAlert, X,
     ArrowLeft, TrendingUp, Filter, AlertCircle, BarChart3, Clock, LayoutGrid, Share2,
     Activity, Brain, Shield, Info, ExternalLink, Sparkles, FileText, Download, Zap, Trash2, Image as ImageIcon, Globe
 } from 'lucide-react';
@@ -13,6 +13,7 @@ export function UserAnalysis({ data, onBack }) {
     const [filter, setFilter] = useState('all'); // 'all', 'original', 'retweets'
     const [langFilter, setLangFilter] = useState('id'); // 'id' or 'all'
     const [sortBy, setSortBy] = useState('latest'); // 'latest' or 'intensity'
+    const [selectedSymptom, setSelectedSymptom] = useState(null);
     
     useEffect(() => {
         const scrollContainer = document.querySelector('main')?.parentElement;
@@ -131,7 +132,7 @@ export function UserAnalysis({ data, onBack }) {
         try {
             const date = new Date(dateStr);
             if (isNaN(date.getTime())) return dateStr;
-            return date.toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+            return date.toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
         } catch (e) { return 'waktu tidak diketahui'; }
     };
 
@@ -340,21 +341,32 @@ export function UserAnalysis({ data, onBack }) {
                                                     </div>
                                                     <p className="text-slate-600 text-[14px] leading-relaxed italic">"{text}"</p>
                                                     
-                                                    {/* DSM Symptom Badge */}
-                                                    <div className="flex items-center gap-2 pt-2">
-                                                        <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 ${
-                                                            item.matchedLabel && !isEnglish
-                                                            ? 'bg-amber-100 text-amber-600 border border-amber-200'
-                                                            : 'bg-slate-100 text-slate-400 border border-slate-200'
-                                                        }`}>
-                                                            <Sparkles size={10} />
-                                                            {isEnglish ? (
-                                                                "external language context"
-                                                            ) : (
-                                                                dsmLexicon.find(l => l.id === item.matchedLabel)?.label || "no specific clinical indicator detected"
-                                                            )}
+                                                    {/* DSM Symptom Badge (Only show if match found or is English) */}
+                                                    {(item.matchedLabel || isEnglish) && (
+                                                        <div className="flex items-center gap-2 pt-2">
+                                                            {(() => {
+                                                                const symptom = dsmLexicon.find(l => l.id === item.matchedLabel);
+                                                                
+                                                                if (isEnglish) {
+                                                                    return (
+                                                                        <div className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 bg-slate-100 text-slate-400 border border-slate-200">
+                                                                            <Sparkles size={10} /> external language context
+                                                                        </div>
+                                                                    );
+                                                                }
+
+                                                                if (symptom) {
+                                                                    return (
+                                                                        <div className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 bg-amber-100 text-amber-600 border border-amber-200">
+                                                                            <Sparkles size={10} /> {symptom.label}
+                                                                        </div>
+                                                                    );
+                                                                }
+
+                                                                return null;
+                                                            })()}
                                                         </div>
-                                                    </div>
+                                                    )}
 
                                                     {tweetImg && <div className="mt-3 rounded-2xl overflow-hidden border border-black/5 shadow-sm bg-slate-100"><img src={tweetImg} alt="" className="w-full h-auto max-h-80 object-cover" /></div>}
                                                 </div>
@@ -377,7 +389,15 @@ export function UserAnalysis({ data, onBack }) {
                         const total = detailsData.length || 1;
                         const percentage = (topic.count / total) * 100;
                         return (
-                            <div key={topic.id} className="space-y-3">
+                            <div 
+                                key={topic.id} 
+                                className={`p-4 rounded-2xl transition-all duration-300 ${
+                                    topic.count > 0 
+                                    ? 'cursor-pointer hover:bg-[#6C5CE7]/5 hover:shadow-md hover:scale-[1.02] border border-transparent hover:border-[#6C5CE7]/20' 
+                                    : 'opacity-40'
+                                }`}
+                                onClick={() => topic.count > 0 && setSelectedSymptom(topic)}
+                            >
                                 <div className="flex justify-between text-[10px] font-black uppercase">
                                     <span className="text-slate-500">{topic.label}</span>
                                     <span className={topic.count > 0 ? 'text-[#6C5CE7]' : 'text-slate-300'}>{topic.count} matches</span>
@@ -517,7 +537,7 @@ export function UserAnalysis({ data, onBack }) {
                                 <Brain size={14} className="text-rose-300" /> intensitas linguistik kronologis
                             </h4>
                             <p className="text-[11px] text-white/70 leading-relaxed">
-                                Grafik ini memetakan **Intensitas Indikator Klinis** dari setiap postingan. Semakin tinggi titiknya, semakin kuat pola bahasa yang terdeteksi oleh AI sebagai tanda risiko emosional.
+                                Grafik ini memetakan <b className="text-white font-black">Intensitas Indikator Klinis</b> dari setiap postingan. Semakin tinggi titiknya, semakin kuat pola bahasa yang terdeteksi oleh AI sebagai tanda risiko emosional.
                             </p>
                         </div>
                         <div className="space-y-2 pl-2">
@@ -525,7 +545,7 @@ export function UserAnalysis({ data, onBack }) {
                                 <Activity size={14} className="text-emerald-300" /> cara membaca data
                             </h4>
                             <p className="text-[11px] text-white/70 leading-relaxed">
-                                Garis putus-putus adalah **Average Intensity**. Jika banyak titik berada di atas garis tersebut, artinya pola perilaku user menunjukkan intensitas risiko yang lebih tinggi dari biasanya.
+                                Garis putus-putus adalah <b className="text-white font-black">Average Intensity</b>. Jika banyak titik berada di atas garis tersebut, artinya pola perilaku user menunjukkan intensitas risiko yang lebih tinggi dari biasanya.
                             </p>
                         </div>
                     </div>
@@ -579,6 +599,102 @@ export function UserAnalysis({ data, onBack }) {
                     <p className="text-slate-400 text-xs leading-relaxed font-medium">laporan ini dihasilkan secara otomatis oleh sistem kecerdasan buatan. celestx. tidak memberikan diagnosa medis formal. hasil ini harus diverifikasi oleh profesional kesehatan mental berlisensi.</p>
                 </GlassCard>
             </div>
+
+            {/* SYMPTOM DRILL-DOWN MODAL */}
+            {selectedSymptom && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-md">
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="bg-white w-full max-w-4xl max-h-[85vh] rounded-[3rem] shadow-2xl overflow-hidden flex flex-col border border-white/20"
+                    >
+                        {/* Modal Header */}
+                        <div className="p-10 border-b border-black/5 bg-gradient-to-br from-slate-50 to-white flex justify-between items-center">
+                            <div className="flex items-center gap-4">
+                                <div className="bg-[#6C5CE7] p-3 rounded-2xl text-white shadow-lg shadow-[#6C5CE7]/20">
+                                    <Brain size={24} />
+                                </div>
+                                <div>
+                                    <h4 className="text-2xl font-black text-[#2D3436] tracking-tighter leading-none mb-2">{selectedSymptom.label}</h4>
+                                    <div className="flex items-center gap-4">
+                                        <span className="text-[10px] font-black text-[#6C5CE7] uppercase tracking-widest bg-[#6C5CE7]/10 px-3 py-1 rounded-full">{selectedSymptom.count} matched activity</span>
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{selectedSymptom.name}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button 
+                                onClick={() => setSelectedSymptom(null)}
+                                className="p-3 bg-slate-100 hover:bg-rose-500 hover:text-white text-slate-400 rounded-2xl transition-all shadow-sm"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        {/* Modal Content - List of Tweets */}
+                        <div className="flex-1 overflow-y-auto p-10 bg-slate-50/30 space-y-6">
+                            {detailsData
+                                .filter(t => t.matchedLabel === selectedSymptom.id)
+                                .map((item, idx) => {
+                                    const text = item.text || "";
+                                    const tweetImg = item.imageUrl || item.mediaUrl;
+                                    const isEnglish = detectLanguage(text) === 'en';
+                                    
+                                    const isRetweet = text.startsWith('RT ') || item?.isRetweet;
+                                    const authorName = item?.displayName || item?.name || userData.displayName;
+                                    const authorHandle = item?.handle || item?.screen_name || userData.handle;
+                                    const authorAvatar = item?.avatarUrl || item?.profile_image_url || userAvatar;
+
+                                    return (
+                                        <div key={idx} className="bg-white p-6 rounded-[2rem] border border-black/5 shadow-sm hover:shadow-md transition-all">
+                                            <div className="flex gap-4 mb-4">
+                                                <div className="shrink-0">
+                                                    {authorAvatar ? (
+                                                        <img src={authorAvatar} alt="" className="w-10 h-10 rounded-full border border-black/5 shadow-sm" />
+                                                    ) : (
+                                                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-300"><User size={20} /></div>
+                                                    )}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div className="flex justify-between items-start">
+                                                        <div>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-sm font-black text-[#2D3436] leading-none">{authorName}</span>
+                                                                <span className="text-[10px] font-medium text-slate-400">{authorHandle}</span>
+                                                                {isRetweet && <span className="text-[8px] font-black bg-indigo-50 text-indigo-500 px-2 py-0.5 rounded-full uppercase tracking-widest">Retweet</span>}
+                                                            </div>
+                                                            <div className="flex items-center gap-1.5 mt-1 text-[9px] text-slate-300 font-black uppercase tracking-widest">
+                                                                <Clock size={10} /> {formatDate(item)}
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-1">intensity</p>
+                                                            <p className={`text-[12px] font-black ${getRiskColor(item.score || 0)}`}>{((item.score || 0) * 100).toFixed(0)}%</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="pl-14">
+                                                <p className="text-slate-600 text-[15px] leading-relaxed italic mb-4">"{text}"</p>
+                                                {tweetImg && (
+                                                    <div className="rounded-2xl overflow-hidden border border-black/5 max-w-sm mb-2 shadow-sm">
+                                                        <img src={tweetImg} alt="" className="w-full h-auto" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            }
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="p-8 border-t border-black/5 bg-white text-center">
+                            <p className="text-[10px] font-medium text-slate-400 italic">Data ini divalidasi silang menggunakan lexicon DSM-5 dan model IndoBERTweet.</p>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
         </div>
     );
 }

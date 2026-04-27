@@ -39,7 +39,7 @@ export const dsmLexicon = [
   },
   {
     id: 5,
-    name: 'Psychomotor Agitasi',
+    name: 'Psychomotor Agitation',
     label: 'Agitasi Psikomotor',
     keywords: [
       'gelisah', 'cemas', 'deg-degan', 'panik', 'gemetar', 'gak tenang', 'was-was', 'takut', 'resah', 'kepikiran', 'tremor',
