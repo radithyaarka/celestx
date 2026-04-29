@@ -2,14 +2,12 @@ console.log("CELESTX: Content Script Loaded");
 
 // ─── Floating Context Badge (Near Tweet) ───────────────────────────────────
 function showContextBadge(targetEl, matchedText = null) {
-    // Remove existing if any
     const existing = document.getElementById('celestx-context-badge');
     if (existing) existing.remove();
 
     const badge = document.createElement('div');
     badge.id = 'celestx-context-badge';
     
-    // Position it near the top right of the tweet, avoiding the 3-dots menu and main text
     badge.style.cssText = `
         position: absolute;
         top: 12px;
@@ -51,17 +49,15 @@ function showContextBadge(targetEl, matchedText = null) {
         lihat analisis
     `;
 
-    // Make target element relative so badge can be positioned inside it
     targetEl.style.position = 'relative';
     targetEl.appendChild(badge);
 
     badge.onclick = (e) => {
         e.stopPropagation();
         chrome.runtime.sendMessage({ action: 'open_dashboard', highlightText: matchedText });
-        badge.remove();
+    badge.remove();
     };
 
-    // Auto remove after 5s
     setTimeout(() => {
         if (badge.parentNode) {
             badge.style.animation = 'celestx-fade-out 0.5s ease forwards';
@@ -72,7 +68,6 @@ function showContextBadge(targetEl, matchedText = null) {
 
 // ─── Floating Toast Notification ─────────────────────────────────────────────
 function showToast(count, detectedTexts = []) {
-    // Remove existing toast if any
     const existing = document.getElementById('celestx-toast');
     if (existing) existing.remove();
 
@@ -112,7 +107,6 @@ function showToast(count, detectedTexts = []) {
     `;
 
     toast.querySelector('#celestx-see-btn').onclick = async () => {
-        // Find and highlight tweets
         const tweetElements = document.querySelectorAll('article[data-testid="tweet"]');
         let firstMatch = null;
         let matchedTextForDashboard = null;
@@ -130,13 +124,11 @@ function showToast(count, detectedTexts = []) {
                     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
                 
-                // Clear highlight after 8s
                 setTimeout(() => { el.style.animation = ""; }, 8000);
             }
         });
 
         if (firstMatch) {
-            // Show the context badge near the tweet
             showContextBadge(firstMatch, matchedTextForDashboard);
         }
 
@@ -170,7 +162,6 @@ function showToast(count, detectedTexts = []) {
     }
     document.body.appendChild(toast);
 
-    // Auto remove after 4 seconds
     setTimeout(() => {
         if (document.body.contains(toast)) {
             toast.style.animation = 'celestx-fade-out 0.5s ease forwards';
@@ -268,16 +259,12 @@ function extractTweets() {
   const tweets = [];
 
   articles.forEach((article, index) => {
-    // Find all tweet texts within this article
     const allTextEls = article.querySelectorAll('div[data-testid="tweetText"]');
     if (allTextEls.length === 0) return;
 
-    // Filter to find the main tweet text (not the one inside a quote box)
-    // Quoted tweets are usually wrapped in a div with role="link" that contains its own User-Name
     const mainTextEl = Array.from(allTextEls).find(el => {
         let parent = el.parentElement;
         while (parent && parent !== article) {
-            // If we find a parent that looks like a quote container, skip this text
             if (parent.getAttribute('role') === 'link' && parent.querySelector('[data-testid="User-Name"]')) {
                 return false;
             }
@@ -310,7 +297,6 @@ function extractTweets() {
 
     const socialContext = article.querySelector('[data-testid="socialContext"]');
     if (socialContext) {
-      // If there is social context (Retweeted, Liked, Promoted), it's not a pure original tweet
       tweetData.isRetweet = true;
     }
 
@@ -353,7 +339,6 @@ let autoScanTimer = null;
 function startAutoScan() {
     chrome.storage.local.get(['sentimenta_settings'], (s) => {
         const settings = s.sentimenta_settings || {};
-        // Default to 2 seconds if not set, much better than 10s
         const interval = (settings.scanInterval || 2) * 1000;
         
         if (autoScanTimer) clearInterval(autoScanTimer);

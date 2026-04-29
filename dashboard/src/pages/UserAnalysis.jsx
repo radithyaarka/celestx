@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { CircularMeter } from '../components/CircularMeter';
 import { GlassCard } from '../components/GlassCard';
+import { XaiModal } from '../components/XaiModal';
 import { dsmLexicon } from '../constants/lexicon';
 import { 
     User, Calendar, MessageSquare, ShieldAlert, X,
@@ -15,6 +16,28 @@ export function UserAnalysis({ data, onBack }) {
     const [sortBy, setSortBy] = useState('latest'); // 'latest' or 'intensity'
     const [selectedSymptom, setSelectedSymptom] = useState(null);
     
+    // xAI State
+    const [xaiData, setXaiData] = useState(null);
+    const [isXaiLoading, setIsXaiLoading] = useState(null);
+
+    const handleXaiExplain = async (item) => {
+        setIsXaiLoading(item.tweet_id || item.text);
+        try {
+            const response = await fetch('http://127.0.0.1:8000/explain', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: item.text })
+            });
+            const data = await response.json();
+            setXaiData({ ...data, originalTweet: item });
+        } catch (error) {
+            console.error("XAI Error:", error);
+            alert("Gagal memanggil xAI. Pastikan server Python menyala dan menginstall module 'shap'.");
+        } finally {
+            setIsXaiLoading(null);
+        }
+    };
+
     useEffect(() => {
         const scrollContainer = document.querySelector('main')?.parentElement;
         if (scrollContainer) scrollContainer.scrollTo(0, 0);
@@ -347,9 +370,9 @@ export function UserAnalysis({ data, onBack }) {
                                                     </div>
                                                     <p className="text-slate-600 text-[14px] leading-relaxed italic">"{text}"</p>
                                                     
-                                                    {/* DSM Symptom Badge (Only show if match found or is English) */}
-                                                    {(item.matchedLabel || isEnglish) && (
-                                                        <div className="flex items-center gap-2 pt-2">
+                                                    {/* Badges & xAI Button */}
+                                                    <div className="flex items-center justify-between gap-2 pt-2">
+                                                        <div className="flex items-center gap-2">
                                                             {(() => {
                                                                 const symptom = dsmLexicon.find(l => l.id === item.matchedLabel);
                                                                 
@@ -372,7 +395,23 @@ export function UserAnalysis({ data, onBack }) {
                                                                 return null;
                                                             })()}
                                                         </div>
-                                                    )}
+
+                                                        {/* xAI Trigger Button */}
+                                                        {(!isEnglish && (item?.score > 0.15 || item?.matchedLabel)) && (
+                                                            <button 
+                                                                onClick={() => handleXaiExplain(item)}
+                                                                disabled={isXaiLoading === (item.tweet_id || item.text)}
+                                                                className="shrink-0 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 bg-[#6C5CE7]/10 text-[#6C5CE7] hover:bg-[#6C5CE7] hover:text-white transition-all border border-[#6C5CE7]/20 shadow-sm"
+                                                            >
+                                                                {isXaiLoading === (item.tweet_id || item.text) ? (
+                                                                    <span className="animate-spin">⌛</span>
+                                                                ) : (
+                                                                    <Sparkles size={10} />
+                                                                )}
+                                                                {isXaiLoading === (item.tweet_id || item.text) ? 'analyzing...' : 'xAI Explain'}
+                                                            </button>
+                                                        )}
+                                                    </div>
 
                                                     {tweetImg && <div className="mt-3 rounded-2xl overflow-hidden border border-black/5 shadow-sm bg-slate-100"><img src={tweetImg} alt="" className="w-full h-auto max-h-80 object-cover" /></div>}
                                                 </div>
@@ -705,6 +744,9 @@ export function UserAnalysis({ data, onBack }) {
                     </motion.div>
                 </div>
             )}
+
+            {/* xAI Modal */}
+            <XaiModal xaiData={xaiData} setXaiData={setXaiData} />
         </div>
     );
 }

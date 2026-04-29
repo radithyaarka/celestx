@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GlassCard } from '../components/GlassCard';
+import { XaiModal } from '../components/XaiModal';
 import { 
   History as HistoryIcon, 
   Trash2, 
@@ -16,11 +17,34 @@ import {
   Zap,
   Layout,
   User,
-  Share2
+  Share2,
+  Sparkles
 } from 'lucide-react';
 
 export function History({ onNavigate, onScanComplete }) {
   const [history, setHistory] = useState([]);
+  
+  // xAI State
+  const [xaiData, setXaiData] = useState(null);
+  const [isXaiLoading, setIsXaiLoading] = useState(null);
+
+  const handleXaiExplain = async (item) => {
+    setIsXaiLoading(item.id || item.text);
+    try {
+        const response = await fetch('http://127.0.0.1:8000/explain', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: item.text })
+        });
+        const data = await response.json();
+        setXaiData({ ...data, originalTweet: item });
+    } catch (error) {
+        console.error("XAI Error:", error);
+        alert("Gagal memanggil xAI. Pastikan server Python menyala dan menginstall module 'shap'.");
+    } finally {
+        setIsXaiLoading(null);
+    }
+  };
   const [cachedScans, setCachedScans] = useState({});
   const [scanningHandle, setScanningHandle] = useState(null);
 
@@ -209,6 +233,22 @@ export function History({ onNavigate, onScanComplete }) {
                         <div className="flex items-center gap-4 text-[9px] text-slate-300 font-black uppercase tracking-widest pt-1">
                             <div className="flex items-center gap-1.5"><Clock size={12} className="text-[#6C5CE7]/60" /><span>{item.date ? new Date(item.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'unknown'}</span></div>
                         </div>
+
+                        {/* xAI Button */}
+                        <div className="mt-2 pt-2 border-t border-black/5 flex justify-start">
+                            <button 
+                                onClick={() => handleXaiExplain(item)}
+                                disabled={isXaiLoading === (item.id || item.text)}
+                                className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 bg-[#6C5CE7]/10 text-[#6C5CE7] hover:bg-[#6C5CE7] hover:text-white transition-all border border-[#6C5CE7]/20 shadow-sm"
+                            >
+                                {isXaiLoading === (item.id || item.text) ? (
+                                    <span className="animate-spin">⌛</span>
+                                ) : (
+                                    <Sparkles size={10} />
+                                )}
+                                {isXaiLoading === (item.id || item.text) ? 'analyzing...' : 'xAI Explain'}
+                            </button>
+                        </div>
                     </div>
                   </div>
                 </div>
@@ -244,6 +284,9 @@ export function History({ onNavigate, onScanComplete }) {
           ))
         )}
       </div>
+
+      {/* xAI Modal */}
+      <XaiModal xaiData={xaiData} setXaiData={setXaiData} />
     </div>
   );
 }

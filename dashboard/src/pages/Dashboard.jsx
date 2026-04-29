@@ -1,12 +1,34 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { GlassCard } from '../components/GlassCard';
+import { XaiModal } from '../components/XaiModal';
 import {
-  ShieldCheck, ShieldAlert, WifiOff, ScanSearch, Loader2,
+  ShieldCheck, ShieldAlert, WifiOff, ScanSearch, Loader2, Sparkles,
   Activity, AlertTriangle, CheckCircle2, Server, Zap, TrendingDown, Clock, Users, ArrowRight, Cloud, User, Info, Repeat
 } from 'lucide-react';
 
 export function Dashboard({ onNavigate }) {
   const [lastScan, setLastScan] = useState(null);
+  
+  const [xaiData, setXaiData] = useState(null);
+  const [isXaiLoading, setIsXaiLoading] = useState(null);
+
+  const handleXaiExplain = async (item) => {
+    setIsXaiLoading(item.id || item.text);
+    try {
+        const response = await fetch('http://127.0.0.1:8000/explain', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: item.text })
+        });
+        const data = await response.json();
+        setXaiData({ ...data, originalTweet: item });
+    } catch (error) {
+        console.error("XAI Error:", error);
+        alert("Gagal memanggil xAI. Pastikan server Python menyala dan menginstall module 'shap'.");
+    } finally {
+        setIsXaiLoading(null);
+    }
+  };
   const [history, setHistory] = useState([]);
   const [totalScanned, setTotalScanned] = useState(0);
   const [idScanned, setIdScanned] = useState(0);
@@ -37,9 +59,7 @@ export function Dashboard({ onNavigate }) {
     const highlight = params.get('highlight');
     if (highlight) {
       setHighlightText(highlight);
-      // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
-      // Remove highlight after 5 seconds
       setTimeout(() => {
         setHighlightText(null);
       }, 5000);
@@ -83,18 +103,14 @@ export function Dashboard({ onNavigate }) {
 
   const detectLanguage = (text) => {
     if (!text) return 'id';
-    // 1. Dictionary Check
     const enWords = /\b(the|is|are|in|to|of|for|with|and|on|at|i|me|my|you|your|he|she|it|this|that|these|those|what|when|where|why|how|do|does|did|but|or|so|because|as|until|while|about|against|between|into|through|during|before|after|above|below|from|up|down|out|off|over|under|again|further|then|once|here|there|all|any|both|each|few|more|most|other|some|such|no|nor|not|only|own|same|than|too|very|can|will|just|don|should|now|lol|lmao|stfu|idk|imo|omg|wtf|bro|dude|shit|fuck|damn|rn|fr|tbh)\b/gi;
     const idWords = /\b(yang|di|ke|dari|ini|itu|dan|ada|saya|aku|kamu|lo|lu|gw|gue|gwa|bgt|banget|ga|gk|gak|ngga|nggak|tidak|aja|saja|udah|sdh|sudah|kalo|kalau|kl|klo|sih|dong|nih|tuh|kok|wkwk|haha|wk|anjir|njir|anjing|bgst|bangsat|tolol|bego|goblok|gimana|gmn|gitu|gtu|gt|gini|kenapa|knp|siapa|sapa|apa|apaan|tapi|tpi|karena|krn|pas|waktu|lg|lagi|sama|sm|buat|bwt|dgn|dengan|kyk|kayak|kek|bisa|bsa|jg|juga|mah|teh|atuh|euy|nya|ya|iya|y|g|blm|belum|coba|cb|terus|trs|abis|habis|deh|untuk|utk)\b/gi;
     
-    // 2. Affix/Pattern Check (Heuristics)
     const enAffixes = /\b\w{3,}(tion|ing|ed|ly|ment|ness|ity|ous|ive|able|ible|less|ful)\b/gi;
     const idAffixes = /\b(meng|meny|peng|peny|diper|keber|keter)\w{3,}|\w{3,}(nya|lah|kah|pun)\b/gi;
 
     const enScore = (text.match(enWords) || []).length + (text.match(enAffixes) || []).length;
     const idScore = (text.match(idWords) || []).length + (text.match(idAffixes) || []).length;
-    
-    // Exact tie goes to ID (Indonesian focus)
     return enScore > idScore ? 'en' : 'id';
   };
 
@@ -103,7 +119,6 @@ export function Dashboard({ onNavigate }) {
   const uniqueUsers = [...new Set(idHistory.map(h => h.handle).filter(Boolean))].length;
   const recentAlerts = indicated.slice(0, 10);
 
-  // Rate calculation using Indonesian-only base
   const alertRate = idScanned > 0 ? ((indicated.length / idScanned) * 100).toFixed(0) : 0;
 
   const totalIndicatedConfidence = idHistory.reduce((a, b) => a + (b.confidence || 0), 0);
@@ -115,7 +130,6 @@ export function Dashboard({ onNavigate }) {
   return (
     <div className="max-w-7xl mx-auto h-[calc(100vh-100px)] flex flex-col md:flex-row gap-8 lowercase px-4 mt-8">
 
-      {/* Left Column: Control Panel */}
       <div className="w-full md:w-[400px] flex flex-col justify-between shrink-0 h-full overflow-y-auto custom-scrollbar pb-2 pr-2">
 
         <div className="shrink-0 space-y-3">
@@ -131,10 +145,6 @@ export function Dashboard({ onNavigate }) {
           <div className="h-px bg-black/5 w-full" />
         </div>
 
-        {/* Stats Section Revamp */}
-        <div className="flex flex-col gap-4 shrink-0">
-          
-          {/* Main Throughput Card */}
           <div className="bg-white border border-black/5 p-5 rounded-3xl shadow-sm relative overflow-visible">
             <div className="flex justify-between items-start border-b border-black/5 pb-4 mb-4">
               <div>
@@ -203,9 +213,7 @@ export function Dashboard({ onNavigate }) {
             </div>
           </div>
 
-          {/* Secondary KPIs */}
           <div className="grid grid-cols-3 gap-3 shrink-0">
-            {/* Risk Rate */}
             <div className="col-span-1 bg-white border border-black/5 p-4 rounded-2xl shadow-sm flex flex-col items-center justify-center text-center relative group/tip overflow-visible">
               <div className="p-2.5 bg-emerald-500/10 rounded-xl text-emerald-500 mb-2.5"><TrendingDown size={20} /></div>
               <p className={`text-2xl font-black leading-none ${getRiskColor(Number(alertRate) / 100)}`}>{alertRate}%</p>
@@ -220,7 +228,6 @@ export function Dashboard({ onNavigate }) {
               </div>
             </div>
 
-            {/* Subjects */}
             <div className="col-span-1 bg-white border border-black/5 p-4 rounded-2xl shadow-sm flex flex-col items-center justify-center text-center relative group/tip overflow-visible">
               <div className="p-2.5 bg-blue-500/10 rounded-xl text-blue-500 mb-2.5"><Users size={20} /></div>
               <p className="text-2xl font-black leading-none text-[#2D3436]">{uniqueUsers}</p>
@@ -235,7 +242,6 @@ export function Dashboard({ onNavigate }) {
               </div>
             </div>
 
-            {/* Avg Intensity */}
             <div className="col-span-1 bg-white border border-black/5 p-4 rounded-2xl shadow-sm flex flex-col items-center justify-center text-center relative group/tip overflow-visible">
               <div className="p-2.5 bg-indigo-500/10 rounded-xl text-indigo-500 mb-2.5"><Activity size={20} /></div>
               <p className="text-2xl font-black leading-none text-[#2D3436]">{avgConfidence}%</p>
@@ -252,9 +258,7 @@ export function Dashboard({ onNavigate }) {
           </div>
         </div>
 
-        {/* Bottom Docked Section */}
         <div className="flex flex-col gap-3 shrink-0 pt-2">
-          {/* Manual Scan Action - Slimmer Version */}
           <div
             onClick={handleManualScan}
             className="bg-[#6C5CE7] rounded-3xl p-4 flex items-center justify-center gap-4 text-white cursor-pointer hover:bg-[#5A4AD1] transition-all shadow-lg shadow-[#6C5CE7]/20 relative overflow-hidden group w-full"
@@ -271,7 +275,6 @@ export function Dashboard({ onNavigate }) {
             </div>
           </div>
 
-          {/* System Status Tiles */}
           <div className="grid grid-cols-2 gap-3 shrink-0">
             <div className={`px-4 py-3 rounded-2xl border text-[9px] font-black uppercase tracking-widest flex flex-col items-center justify-center text-center gap-1.5 ${backendStatus === 'online' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-rose-50 border-rose-100 text-rose-600'}`}>
               <span className="opacity-70">api server</span>
@@ -285,7 +288,6 @@ export function Dashboard({ onNavigate }) {
         </div>
       </div>
 
-      {/* Right Column: Recent Detections */}
       <div className="flex-1 flex flex-col min-h-0 bg-white/40 backdrop-blur-md rounded-[3rem] border border-black/5 overflow-hidden shadow-sm">
         <div className="px-10 py-8 border-b border-black/5 flex items-center justify-between shrink-0 bg-white/50">
           <div>
@@ -349,12 +351,26 @@ export function Dashboard({ onNavigate }) {
                       "{item.text}"
                     </p>
 
-                    {/* Media Image */}
                     {(item.imageUrl || item.mediaUrl) && (
                       <div className="mt-3 rounded-2xl overflow-hidden border border-black/5 shadow-sm bg-slate-100">
                         <img src={item.imageUrl || item.mediaUrl} alt="" className="w-full h-auto max-h-60 object-cover" />
                       </div>
                     )}
+
+                    <div className="mt-3 pt-3 border-t border-black/5 flex justify-end">
+                      <button 
+                          onClick={() => handleXaiExplain(item)}
+                          disabled={isXaiLoading === (item.id || item.text)}
+                          className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 bg-[#6C5CE7]/10 text-[#6C5CE7] hover:bg-[#6C5CE7] hover:text-white transition-all border border-[#6C5CE7]/20 shadow-sm"
+                      >
+                          {isXaiLoading === (item.id || item.text) ? (
+                              <span className="animate-spin">⌛</span>
+                          ) : (
+                              <Sparkles size={10} />
+                          )}
+                          {isXaiLoading === (item.id || item.text) ? 'analyzing...' : 'xAI Explain'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -363,6 +379,8 @@ export function Dashboard({ onNavigate }) {
           )}
         </div>
       </div>
+
+      <XaiModal xaiData={xaiData} setXaiData={setXaiData} />
     </div>
   );
 }
