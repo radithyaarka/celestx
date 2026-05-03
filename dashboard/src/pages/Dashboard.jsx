@@ -374,8 +374,8 @@ export function Dashboard({ onNavigate }) {
 
                     {/* Media Image */}
                     {(item.imageUrl || item.mediaUrl) && (
-                      <div className="mt-3 rounded-2xl overflow-hidden border border-black/5 shadow-sm bg-slate-100">
-                        <img src={item.imageUrl || item.mediaUrl} alt="" className="w-full h-auto max-h-60 object-cover" />
+                      <div className="mt-3 rounded-2xl overflow-hidden border border-black/5 shadow-sm bg-slate-50 max-w-md">
+                        <img src={item.imageUrl || item.mediaUrl} alt="" className="w-full h-auto block" />
                       </div>
                     )}
 
