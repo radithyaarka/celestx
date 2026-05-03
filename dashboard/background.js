@@ -98,16 +98,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 const idOnlyTweets = allTweets.filter(t => detectLanguage(t.text) === 'id');
                 const indicatedTweets = idOnlyTweets.filter(t => t.label === "INDICATED");
 
-                chrome.storage.local.get(['sentimenta_history', 'sentimenta_total_scanned', 'sentimenta_id_scanned'], (storage) => {
+                chrome.storage.local.get(['sentimenta_history', 'sentimenta_total_scanned', 'sentimenta_id_scanned', 'sentimenta_total_indicated'], (storage) => {
                     const history = storage.sentimenta_history || [];
                     const newHistory = [...indicatedTweets, ...history].slice(0, 100);
                     const currentTotal = storage.sentimenta_total_scanned || 0;
                     const currentIdTotal = storage.sentimenta_id_scanned || 0;
+                    const currentIndicatedTotal = storage.sentimenta_total_indicated !== undefined ? storage.sentimenta_total_indicated : history.filter(item => item.label === 'INDICATED').length;
 
                     chrome.storage.local.set({ 
                         sentimenta_history: newHistory,
                         sentimenta_total_scanned: currentTotal + allTweets.length, // All languages for throughput
-                        sentimenta_id_scanned: currentIdTotal + idOnlyTweets.length // ID only for clinical rate
+                        sentimenta_id_scanned: currentIdTotal + idOnlyTweets.length, // ID only for clinical rate
+                        sentimenta_total_indicated: currentIndicatedTotal + indicatedTweets.length
                     });
 
                     if (indicatedTweets.length > 0 && settings.notifications !== false) {

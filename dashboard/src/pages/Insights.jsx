@@ -119,6 +119,39 @@ export function Insights({ onScanComplete }) {
   indicated.forEach(item => { if (item.date) hourlyData[new Date(item.date).getHours()]++; });
   const maxHour = Math.max(...hourlyData, 1);
 
+  const getTopTriggerWords = (tweets, limit = 10) => {
+    if (!tweets || tweets.length === 0) return [];
+    const stopWords = new Set([
+      'yang', 'di', 'ke', 'dari', 'ini', 'itu', 'dan', 'ada', 'saya', 'aku', 'kamu', 'lo', 'lu', 'gw', 'gue', 'gwa', 
+      'bgt', 'banget', 'ga', 'gk', 'gak', 'ngga', 'nggak', 'tidak', 'aja', 'saja', 'udah', 'sdh', 'sudah', 'kalo', 
+      'kalau', 'kl', 'klo', 'sih', 'dong', 'nih', 'tuh', 'kok', 'wkwk', 'haha', 'wk', 'gimana', 'gmn', 'gitu', 'gtu', 
+      'gt', 'gini', 'kenapa', 'knp', 'siapa', 'sapa', 'apa', 'apaan', 'tapi', 'tpi', 'karena', 'krn', 'pas', 'waktu', 
+      'lg', 'lagi', 'sama', 'sm', 'buat', 'bwt', 'dgn', 'dengan', 'kyk', 'kayak', 'kek', 'bisa', 'bsa', 'jg', 'juga', 
+      'mah', 'teh', 'atuh', 'euy', 'nya', 'ya', 'iya', 'y', 'g', 'blm', 'belum', 'coba', 'cb', 'terus', 'trs', 'abis', 
+      'habis', 'deh', 'untuk', 'utk', 'mau', 'pengen', 'ingin', 'orang', 'banyak', 'lebih', 'paling', 'baru', 'jadi',
+      'jd', 'cuma', 'cm', 'kan', 'kn', 'yah', 'yaudah', 'yowes', 'udh', 'hari', 'sekarang', 'besok', 'kemarin', 
+      'malah', 'atau', 'pada', 'dalam', 'kita', 'kami', 'mereka', 'kalian', 'sampai', 'sampe', 'ampe', 'pun', 'lah', 
+      'kah'
+    ]);
+
+    const wordCounts = {};
+    tweets.forEach(tweet => {
+      if (!tweet.text) return;
+      const words = tweet.text.toLowerCase().match(/\b[a-z]{3,}\b/g) || [];
+      words.forEach(word => {
+        if (!stopWords.has(word)) {
+          wordCounts[word] = (wordCounts[word] || 0) + 1;
+        }
+      });
+    });
+
+    return Object.entries(wordCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limit)
+      .map(entry => entry[0]);
+  };
+  const triggerCloudData = getTopTriggerWords(indicated, 12);
+
   const generateRadarPath = (data, size, max) => {
       const angleStep = (Math.PI * 2) / data.length;
       const center = size / 2;
@@ -310,9 +343,11 @@ export function Insights({ onScanComplete }) {
                 </h3>
                 <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5 mb-6">kata kunci pemicu utama</p>
                 <div className="flex flex-wrap gap-2.5">
-                    {['lelah', 'sedih', 'capek', 'tidur', 'sia-sia', 'bosan', 'gagal', 'salah'].map((word, i) => (
+                    {triggerCloudData.length > 0 ? triggerCloudData.map((word, i) => (
                         <span key={i} className="text-[10px] font-black text-[#6C5CE7] bg-[#6C5CE7]/5 px-3 py-1 rounded-xl border border-[#6C5CE7]/10">{word}</span>
-                    ))}
+                    )) : (
+                        <span className="text-[10px] font-black text-slate-400 italic normal-case">Belum ada data kata kunci.</span>
+                    )}
                 </div>
             </GlassCard>
 

@@ -23,13 +23,13 @@ app.add_middleware(
 MODEL_PATH = "./model_ta" # Pastikan folder model_ta ada di folder yang sama dengan main.py
 
 try:
-    print("⏳ Memuat model IndoBERTweet... (bisa memakan waktu 30-60 detik)")
+    print("LOADING: Memuat model IndoBERTweet... (bisa memakan waktu 30-60 detik)")
     device = 0 if torch.cuda.is_available() else -1
     pipe = pipeline("text-classification", model=MODEL_PATH, tokenizer=MODEL_PATH, device=device)
-    print("✅ Model berhasil dimuat!")
+    print("SUCCESS: Model berhasil dimuat!")
     
     # --- SHAP XAI INITIALIZATION ---
-    print("⏳ Menginisialisasi SHAP Explainer...")
+    print("LOADING: Menginisialisasi SHAP Explainer...")
     def predict_proba(texts):
         if isinstance(texts, np.ndarray):
             texts = texts.tolist()
@@ -45,10 +45,10 @@ try:
         return scores.cpu().numpy()
 
     explainer = shap.Explainer(predict_proba, pipe.tokenizer)
-    print("✅ SHAP Explainer siap!")
+    print("SUCCESS: SHAP Explainer siap!")
 
     # --- INDO-SBERT INITIALIZATION ---
-    print("⏳ Memuat Indo-SBERT untuk pemetaan DSM-5...")
+    print("LOADING: Memuat Indo-SBERT untuk pemetaan DSM-5...")
     sbert_model = SentenceTransformer('firqaaa/indo-sentence-bert-base')
     
     # DSM-5 Semantic Anchors
@@ -77,10 +77,10 @@ try:
         # Threshold 0.35 untuk memastikan ada kemiripan yang cukup
         return criteria_names[top_idx] if top_score > 0.35 else None
 
-    print("✅ Indo-SBERT & DSM-5 Anchors siap!")
+    print("SUCCESS: Indo-SBERT & DSM-5 Anchors siap!")
 
 except Exception as e:
-    print(f"❌ Gagal memuat model: {e}")
+    print(f"ERROR: Gagal memuat model: {e}")
     pipe = None
     explainer = None
     sbert_model = None

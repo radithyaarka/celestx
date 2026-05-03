@@ -18,11 +18,13 @@ import {
   Layout,
   User,
   Share2,
-  Sparkles
+  Sparkles,
+  Info
 } from 'lucide-react';
 
 export function History({ onNavigate, onScanComplete }) {
   const [history, setHistory] = useState([]);
+  const [filterCritical, setFilterCritical] = useState(false);
   
   // xAI State
   const [xaiData, setXaiData] = useState(null);
@@ -55,15 +57,23 @@ export function History({ onNavigate, onScanComplete }) {
     });
   }, []);
 
-  const deleteItem = (index) => {
-    const updated = history.filter((_, i) => i !== index);
+  const deleteItem = (itemToDelete) => {
+    const updated = history.filter(item => item !== itemToDelete);
     setHistory(updated);
     chrome.storage.local.set({ sentimenta_history: updated });
   };
 
   const clearHistory = () => {
-    if (window.confirm('apakah anda yakin ingin menghapus seluruh history archive?')) {
-      chrome.storage.local.remove(['sentimenta_history', 'sentimenta_deep_scans']);
+    if (window.confirm('apakah anda yakin ingin menghapus seluruh history archive beserta semua metrik global?')) {
+      chrome.storage.local.remove([
+        'sentimenta_history', 
+        'sentimenta_deep_scans',
+        'sentimenta_total_scanned',
+        'sentimenta_id_scanned',
+        'sentimenta_total_indicated',
+        'global_seen_tweets',
+        'lastScan'
+      ]);
       setHistory([]);
       setCachedScans({});
     }
@@ -133,6 +143,8 @@ export function History({ onNavigate, onScanComplete }) {
     ? (history.reduce((a, b) => a + b.confidence, 0) / history.length * 100).toFixed(0) 
     : 0;
 
+  const displayedHistory = filterCritical ? history.filter(h => h.confidence > 0.75) : history;
+
   return (
     <div className="max-w-7xl mx-auto space-y-12 pb-20 lowercase relative px-4">
       
@@ -161,18 +173,41 @@ export function History({ onNavigate, onScanComplete }) {
       </div>
 
       {history.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 shrink-0">
-          <div className="bg-white border border-black/5 p-6 rounded-[2rem] flex items-center gap-4 shadow-sm group hover:border-[#6C5CE7]/30 transition-all">
-            <div className="bg-slate-50 p-2.5 rounded-lg text-slate-400 group-hover:bg-[#6C5CE7]/10 group-hover:text-[#6C5CE7] transition-colors"><Database size={18} /></div>
-            <div><p className="text-[10px] text-slate-400 font-black uppercase tracking-widest leading-none mb-1.5">scanned</p><p className="text-2xl font-black text-[#2D3436] leading-none">{history.length}</p></div>
-          </div>
-          <div className="bg-white border border-black/5 p-6 rounded-[2rem] flex items-center gap-4 shadow-sm group hover:border-rose-500/30 transition-all">
-            <div className="bg-rose-50 p-2.5 rounded-lg text-rose-300 group-hover:bg-rose-500 group-hover:text-white transition-all"><ShieldAlert size={18} /></div>
-            <div><p className="text-[10px] text-slate-400 font-black uppercase tracking-widest leading-none mb-1.5">critical</p><p className="text-2xl font-black text-rose-500 leading-none">{highRisks}</p></div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0">
+          <div 
+            onClick={() => setFilterCritical(!filterCritical)}
+            className={`cursor-pointer border p-6 rounded-[2rem] flex items-center gap-4 shadow-sm group transition-all relative ${
+              filterCritical ? 'bg-rose-50 border-rose-500/40 shadow-rose-500/10' : 'bg-white border-black/5 hover:border-rose-500/30'
+            }`}
+          >
+            <div className={`p-2.5 rounded-lg transition-all ${filterCritical ? 'bg-rose-500 text-white' : 'bg-rose-50 text-rose-300 group-hover:bg-rose-500 group-hover:text-white'}`}><ShieldAlert size={18} /></div>
+            <div>
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <p className={`text-[10px] font-black uppercase tracking-widest leading-none ${filterCritical ? 'text-rose-500' : 'text-slate-400'}`}>critical</p>
+                <div className="relative group/info">
+                  <Info size={12} className={filterCritical ? 'text-rose-400' : 'text-slate-300'} />
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-[#2D3436] text-white text-[10px] font-medium leading-relaxed rounded-xl opacity-0 group-hover/info:opacity-100 transition-all pointer-events-none z-[100] shadow-2xl border border-white/10 text-center normal-case">
+                    Aktivitas dengan intensitas deteksi di atas 75%.
+                  </div>
+                </div>
+              </div>
+              <p className="text-2xl font-black text-rose-500 leading-none">{highRisks}</p>
+            </div>
           </div>
           <div className="bg-white border border-black/5 p-6 rounded-[2rem] flex items-center gap-4 shadow-sm group hover:border-[#6C5CE7]/30 transition-all">
             <div className="bg-indigo-50 p-2.5 rounded-lg text-indigo-300 group-hover:bg-indigo-500 group-hover:text-white transition-all"><TrendingUp size={18} /></div>
-            <div><p className="text-[10px] text-slate-400 font-black uppercase tracking-widest leading-none mb-1.5">avg intensity</p><p className="text-2xl font-black text-[#6C5CE7] leading-none">{avgScore}%</p></div>
+            <div>
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest leading-none">avg intensity</p>
+                <div className="relative group/info">
+                  <Info size={12} className="text-slate-300" />
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-[#2D3436] text-white text-[10px] font-medium leading-relaxed rounded-xl opacity-0 group-hover/info:opacity-100 transition-all pointer-events-none z-[100] shadow-2xl border border-white/10 text-center normal-case">
+                    Rata-rata intensitas risiko dari seluruh aktivitas yang dipindai.
+                  </div>
+                </div>
+              </div>
+              <p className="text-2xl font-black text-[#6C5CE7] leading-none">{avgScore}%</p>
+            </div>
           </div>
           <div className="bg-[#6C5CE7] p-6 rounded-[2rem] flex items-center gap-4 shadow-lg shadow-[#6C5CE7]/20 border border-[#6C5CE7]">
             <div className="bg-white/20 p-2.5 rounded-lg text-white"><Zap size={18} /></div>
@@ -190,11 +225,19 @@ export function History({ onNavigate, onScanComplete }) {
             <p className="text-slate-400 font-black text-lg tracking-tight uppercase tracking-widest">archive is empty.</p>
             <p className="text-slate-300 text-sm mt-2">lakukan scan untuk mulai mengisi database.</p>
           </div>
+        ) : displayedHistory.length === 0 ? (
+          <div className="text-center py-32 bg-rose-50/50 rounded-[3rem] border-2 border-dashed border-rose-100">
+            <div className="bg-white w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+                <ShieldAlert size={32} className="text-rose-200" />
+            </div>
+            <p className="text-rose-400 font-black text-lg tracking-tight uppercase tracking-widest">no critical alerts.</p>
+            <p className="text-rose-300 text-sm mt-2">tidak ada aktivitas dengan intensitas di atas 75%.</p>
+          </div>
         ) : (
-          history.map((item, idx) => (
+          displayedHistory.map((item, idx) => (
             <GlassCard key={idx} className="p-8 border-none shadow-sm bg-white hover:shadow-md transition-all group overflow-hidden relative rounded-[2.5rem]">
               <button
-                onClick={(e) => { e.stopPropagation(); deleteItem(idx); }}
+                onClick={(e) => { e.stopPropagation(); deleteItem(item); }}
                 className="absolute top-6 right-6 p-2 text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all z-20"
               >
                 <X size={18} />

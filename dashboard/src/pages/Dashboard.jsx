@@ -33,15 +33,17 @@ export function Dashboard({ onNavigate }) {
   const [history, setHistory] = useState([]);
   const [totalScanned, setTotalScanned] = useState(0);
   const [idScanned, setIdScanned] = useState(0);
+  const [totalIndicated, setTotalIndicated] = useState(0);
   const [scanning, setScanning] = useState(false);
   const [backendStatus, setBackendStatus] = useState('checking');
 
   const refreshData = useCallback(() => {
     if (window.chrome && chrome.storage) {
-      chrome.storage.local.get(['sentimenta_history', 'lastScan', 'sentimenta_total_scanned', 'sentimenta_id_scanned'], (storage) => {
+      chrome.storage.local.get(['sentimenta_history', 'lastScan', 'sentimenta_total_scanned', 'sentimenta_id_scanned', 'sentimenta_total_indicated'], (storage) => {
         setHistory(storage.sentimenta_history || []);
         setTotalScanned(storage.sentimenta_total_scanned || 0);
         setIdScanned(storage.sentimenta_id_scanned || 0);
+        setTotalIndicated(storage.sentimenta_total_indicated !== undefined ? storage.sentimenta_total_indicated : (storage.sentimenta_history || []).filter(item => item.label === 'INDICATED').length);
         if (storage.lastScan) setLastScan(storage.lastScan);
       });
     }
@@ -127,7 +129,7 @@ export function Dashboard({ onNavigate }) {
   const recentAlerts = indicated.slice(0, 10);
 
   // Rate calculation using Indonesian-only base
-  const alertRate = idScanned > 0 ? ((indicated.length / idScanned) * 100).toFixed(0) : 0;
+  const alertRate = idScanned > 0 ? ((totalIndicated / idScanned) * 100).toFixed(0) : 0;
 
   const totalIndicatedConfidence = idHistory.reduce((a, b) => a + (b.confidence || 0), 0);
   const estimatedNormalCount = Math.max(0, idScanned - idHistory.length);
@@ -191,7 +193,7 @@ export function Dashboard({ onNavigate }) {
                     </div>
                   </div>
                 </div>
-                <p className="text-2xl font-black text-rose-500 leading-none">{indicated.length}</p>
+                <p className="text-2xl font-black text-rose-500 leading-none">{totalIndicated}</p>
               </div>
               <div>
                 <div className="flex items-center gap-1.5 mb-1.5">
@@ -206,7 +208,7 @@ export function Dashboard({ onNavigate }) {
                     </div>
                   </div>
                 </div>
-                <p className="text-2xl font-black text-blue-400 leading-none">{Math.max(0, idScanned - indicated.length)}</p>
+                <p className="text-2xl font-black text-blue-400 leading-none">{Math.max(0, idScanned - totalIndicated)}</p>
               </div>
               <div>
                 <div className="flex items-center gap-1.5 mb-1.5">

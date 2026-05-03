@@ -1,6 +1,6 @@
 export const dsmLexicon = [
   {
-    id: 1,
+    id: 'depressed_mood',
     name: 'Depressed Mood',
     label: 'Suasana Hati Depresi',
     keywords: [
@@ -10,7 +10,7 @@ export const dsmLexicon = [
     ]
   },
   {
-    id: 2,
+    id: 'anhedonia',
     name: 'Anhedonia',
     label: 'Kehilangan Minat',
     keywords: [
@@ -20,7 +20,7 @@ export const dsmLexicon = [
     ]
   },
   {
-    id: 3,
+    id: 'weight_loss',
     name: 'Appetite Changes',
     label: 'Perubahan Nafsu Makan',
     keywords: [
@@ -29,7 +29,7 @@ export const dsmLexicon = [
     ]
   },
   {
-    id: 4,
+    id: 'insomnia',
     name: 'Sleep Disturbance',
     label: 'Gangguan Tidur',
     keywords: [
@@ -38,7 +38,7 @@ export const dsmLexicon = [
     ]
   },
   {
-    id: 5,
+    id: 'psychomotor',
     name: 'Psychomotor Agitation',
     label: 'Agitasi Psikomotor',
     keywords: [
@@ -47,7 +47,7 @@ export const dsmLexicon = [
     ]
   },
   {
-    id: 6,
+    id: 'fatigue',
     name: 'Fatigue',
     label: 'Keletihan/Hilang Energi',
     keywords: [
@@ -56,7 +56,7 @@ export const dsmLexicon = [
     ]
   },
   {
-    id: 7,
+    id: 'worthlessness',
     name: 'Worthlessness',
     label: 'Perasaan Tidak Berharga',
     keywords: [
@@ -65,7 +65,7 @@ export const dsmLexicon = [
     ]
   },
   {
-    id: 10,
+    id: 'concentration',
     name: 'Concentration Loss',
     label: 'Penurunan Konsentrasi',
     keywords: [
@@ -74,7 +74,7 @@ export const dsmLexicon = [
     ]
   },
   {
-    id: 9,
+    id: 'suicidal',
     name: 'Suicidal Ideation',
     label: 'Pikiran tentang Kematian',
     keywords: [
