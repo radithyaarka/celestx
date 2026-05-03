@@ -127,11 +127,16 @@ export function UserAnalysis({ data, onBack }) {
             
             // Only search for symptoms if the AI actually indicates risk
             if (isIndicated) {
-                let matchedId = null;
-                for (const category of dsmLexicon) {
-                    if (category.keywords.some(kw => text.includes(kw.toLowerCase()))) {
-                        matchedId = category.id;
-                        break;
+                // Prioritize AI-detected symptom from backend
+                let matchedId = tweet.symptom || null;
+                
+                // Fallback to keyword matching only if AI didn't provide one
+                if (!matchedId) {
+                    for (const category of dsmLexicon) {
+                        if (category.keywords.some(kw => text.includes(kw.toLowerCase()))) {
+                            matchedId = category.id;
+                            break;
+                        }
                     }
                 }
 

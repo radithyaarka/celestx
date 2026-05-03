@@ -22,8 +22,8 @@ export function Users({ onSelectUser }) {
             if (storage.sentimenta_deep_scans) {
               const users = Object.values(storage.sentimenta_deep_scans);
               setAnalyzedUsers(users.sort((a, b) => {
-                  const scoreA = a.summary.average_score || a.summary.average_severity || 0;
-                  const scoreB = b.summary.average_score || b.summary.average_severity || 0;
+                  const scoreA = a.summary?.average_risk_score || a.summary?.average_score || a.summary?.average_severity || 0;
+                  const scoreB = b.summary?.average_risk_score || b.summary?.average_score || b.summary?.average_severity || 0;
                   return scoreB - scoreA;
               }));
             }
@@ -85,11 +85,11 @@ export function Users({ onSelectUser }) {
                                     avatarUrl: response.profile?.avatarUrl || originalTweet?.avatarUrl || "",
                                     bio: response.profile?.bio || ""
                                 },
-                                summary: result.user_summary,
+                                summary: result,
                                 tweetCount: response.tweets.length,
                                 details: result.details.map(d => {
                                     const originalTweet = response.tweets[d.tweet_id - 1];
-                                    return { ...originalTweet, score: d.score, label: d.label };
+                                    return { ...originalTweet, score: d.score, label: d.label, symptom: d.symptom };
                                 })
                             };
 

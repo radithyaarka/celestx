@@ -103,11 +103,11 @@ export function History({ onNavigate, onScanComplete }) {
                 const result = await res.json();
                 const scanData = {
                   user: item,
-                  summary: result.user_summary,
+                  summary: result,
                   tweetCount: response.tweets.length,
                   details: result.details.map(d => {
                     const originalTweet = response.tweets[d.tweet_id - 1];
-                    return { ...originalTweet, score: d.score, label: d.label };
+                    return { ...originalTweet, score: d.score, label: d.label, symptom: d.symptom };
                   })
                 };
                 chrome.storage.local.get(['sentimenta_deep_scans'], (s) => {
