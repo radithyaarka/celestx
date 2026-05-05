@@ -67,10 +67,14 @@ export function Users({ onSelectUser }) {
                         // 3. Predict via Backend
                         try {
                             const tweetTexts = response.tweets.map(t => t.text);
+                            const threshold = (settings.confidenceThreshold || 15) / 100;
                             const res = await fetch("http://localhost:8000/predict-user", {
                                 method: "POST",
                                 headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ tweets: tweetTexts }),
+                                body: JSON.stringify({ 
+                                    tweets: tweetTexts,
+                                    threshold: threshold
+                                }),
                             });
                             const result = await res.json();
 

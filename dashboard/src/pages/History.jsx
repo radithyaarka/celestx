@@ -49,11 +49,13 @@ export function History({ onNavigate, onScanComplete }) {
   };
   const [cachedScans, setCachedScans] = useState({});
   const [scanningHandle, setScanningHandle] = useState(null);
+  const [settings, setSettings] = useState({ confidenceThreshold: 15 });
 
   useEffect(() => {
-    chrome.storage.local.get(['sentimenta_history', 'sentimenta_deep_scans'], (storage) => {
+    chrome.storage.local.get(['sentimenta_history', 'sentimenta_deep_scans', 'sentimenta_settings'], (storage) => {
       setHistory(storage.sentimenta_history || []);
       setCachedScans(storage.sentimenta_deep_scans || {});
+      if (storage.sentimenta_settings) setSettings(storage.sentimenta_settings);
     });
   }, []);
 
@@ -80,9 +82,12 @@ export function History({ onNavigate, onScanComplete }) {
   };
 
   const getRiskColor = (score) => {
-    if (score > 0.75) return 'text-rose-500';
-    if (score > 0.5) return 'text-amber-500';
-    return 'text-[#6C5CE7]';
+    const s = score * 100;
+    const thresh = settings.confidenceThreshold || 15;
+    if (s > 75) return 'text-rose-500';
+    if (s > 50) return 'text-amber-500';
+    if (s > thresh) return 'text-[#6C5CE7]';
+    return 'text-emerald-500';
   };
 
   const handleDeepScan = async (item, forceNew = true) => {
@@ -105,10 +110,14 @@ export function History({ onNavigate, onScanComplete }) {
                   return;
                 }
                 const tweetTexts = response.tweets.map(t => t.text);
+                const threshold = (settings?.confidenceThreshold || 15) / 100;
                 const res = await fetch("http://localhost:8000/predict-user", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ tweets: tweetTexts }),
+                  body: JSON.stringify({ 
+                    tweets: tweetTexts,
+                    threshold: threshold
+                  }),
                 });
                 const result = await res.json();
                 const scanData = {

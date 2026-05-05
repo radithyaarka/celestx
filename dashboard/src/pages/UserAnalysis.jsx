@@ -38,7 +38,13 @@ export function UserAnalysis({ data, onBack }) {
         }
     };
 
+    const [settings, setSettings] = useState({ confidenceThreshold: 15 });
+
     useEffect(() => {
+        chrome.storage.local.get(['sentimenta_settings'], (storage) => {
+            if (storage.sentimenta_settings) setSettings(storage.sentimenta_settings);
+        });
+        
         const scrollContainer = document.querySelector('main')?.parentElement;
         if (scrollContainer) scrollContainer.scrollTo(0, 0);
     }, []);
@@ -123,7 +129,8 @@ export function UserAnalysis({ data, onBack }) {
             if (detectLanguage(tweet.text) === 'en') return;
 
             const text = (tweet.text || "").toLowerCase();
-            const isIndicated = tweet.label === 'INDICATED' || (Number(tweet.score || tweet.confidence) > 0.5);
+            const thresh = (settings.confidenceThreshold || 15) / 100;
+            const isIndicated = tweet.label === 'INDICATED' || (Number(tweet.score || tweet.confidence) > thresh);
             
             // Only search for symptoms if the AI actually indicates risk
             if (isIndicated) {
@@ -156,7 +163,7 @@ export function UserAnalysis({ data, onBack }) {
             ...item,
             count: counts[item.id] || 0
         })).sort((a, b) => b.count - a.count);
-    }, [detailsData, langFilter]);
+    }, [detailsData, langFilter, settings.confidenceThreshold]);
 
     const topIndicator = clinicalProfile[0]?.count > 0 ? clinicalProfile[0] : null;
 

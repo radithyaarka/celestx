@@ -34,16 +34,18 @@ export function Dashboard({ onNavigate }) {
   const [totalScanned, setTotalScanned] = useState(0);
   const [idScanned, setIdScanned] = useState(0);
   const [totalIndicated, setTotalIndicated] = useState(0);
+  const [settings, setSettings] = useState({ confidenceThreshold: 15 });
   const [scanning, setScanning] = useState(false);
   const [backendStatus, setBackendStatus] = useState('checking');
 
   const refreshData = useCallback(() => {
     if (window.chrome && chrome.storage) {
-      chrome.storage.local.get(['sentimenta_history', 'lastScan', 'sentimenta_total_scanned', 'sentimenta_id_scanned', 'sentimenta_total_indicated'], (storage) => {
+      chrome.storage.local.get(['sentimenta_history', 'lastScan', 'sentimenta_total_scanned', 'sentimenta_id_scanned', 'sentimenta_total_indicated', 'sentimenta_settings'], (storage) => {
         setHistory(storage.sentimenta_history || []);
         setTotalScanned(storage.sentimenta_total_scanned || 0);
         setIdScanned(storage.sentimenta_id_scanned || 0);
         setTotalIndicated(storage.sentimenta_total_indicated !== undefined ? storage.sentimenta_total_indicated : (storage.sentimenta_history || []).filter(item => item.label === 'INDICATED').length);
+        if (storage.sentimenta_settings) setSettings(storage.sentimenta_settings);
         if (storage.lastScan) setLastScan(storage.lastScan);
       });
     }
@@ -100,7 +102,9 @@ export function Dashboard({ onNavigate }) {
 
   const getRiskColor = (score) => {
     const s = score * 100;
-    if (s <= 15) return 'text-emerald-500';
+    const thresh = settings.confidenceThreshold || 15;
+    
+    if (s <= thresh) return 'text-emerald-500';
     if (s <= 50) return 'text-sky-500';
     if (s <= 75) return 'text-amber-500';
     return 'text-rose-500';
@@ -124,12 +128,16 @@ export function Dashboard({ onNavigate }) {
   };
 
   const idHistory = history.filter(h => detectLanguage(h.text) === 'id');
-  const indicated = idHistory.filter(h => h.label === 'INDICATED');
+  const threshFraction = (settings.confidenceThreshold || 15) / 100;
+  
+  // Hitung ulang secara LIVE berdasarkan threshold saat ini
+  const indicated = idHistory.filter(h => (h.confidence || 0) >= threshFraction);
   const uniqueUsers = [...new Set(idHistory.map(h => h.handle).filter(Boolean))].length;
   const recentAlerts = indicated.slice(0, 10);
 
-  // Rate calculation using Indonesian-only base
-  const alertRate = idScanned > 0 ? ((totalIndicated / idScanned) * 100).toFixed(0) : 0;
+  // Rate calculation menggunakan data yang terfilter secara live
+  const dynamicTotalIndicated = indicated.length;
+  const alertRate = idScanned > 0 ? ((dynamicTotalIndicated / idScanned) * 100).toFixed(0) : 0;
 
   const totalIndicatedConfidence = idHistory.reduce((a, b) => a + (b.confidence || 0), 0);
   const estimatedNormalCount = Math.max(0, idScanned - idHistory.length);
@@ -193,7 +201,7 @@ export function Dashboard({ onNavigate }) {
                     </div>
                   </div>
                 </div>
-                <p className="text-2xl font-black text-rose-500 leading-none">{totalIndicated}</p>
+                <p className="text-2xl font-black text-rose-500 leading-none">{dynamicTotalIndicated}</p>
               </div>
               <div>
                 <div className="flex items-center gap-1.5 mb-1.5">

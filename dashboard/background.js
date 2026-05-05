@@ -55,10 +55,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
             try {
                 const tweetTexts = novelTweets.map(t => t.text);
+                const threshold = (settings.confidenceThreshold || 15) / 100; // Convert 0-100 to 0-1
                 const res = await fetch(`${backendUrl}/predict-user`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ tweets: tweetTexts })
+                    body: JSON.stringify({ 
+                        tweets: tweetTexts,
+                        threshold: threshold
+                    })
                 });
                 const result = await res.json();
 
@@ -100,20 +104,26 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
                 chrome.storage.local.get(['sentimenta_history', 'sentimenta_total_scanned', 'sentimenta_id_scanned', 'sentimenta_total_indicated'], (storage) => {
                     const history = storage.sentimenta_history || [];
+                    const indicatedTweets = allTweets.filter(t => t.label === "INDICATED");
                     const newHistory = [...indicatedTweets, ...history].slice(0, 100);
-                    const currentTotal = storage.sentimenta_total_scanned || 0;
-                    const currentIdTotal = storage.sentimenta_id_scanned || 0;
-                    const currentIndicatedTotal = storage.sentimenta_total_indicated !== undefined ? storage.sentimenta_total_indicated : history.filter(item => item.label === 'INDICATED').length;
-
-                    chrome.storage.local.set({ 
+                    
+                    const updateData = {
                         sentimenta_history: newHistory,
-                        sentimenta_total_scanned: currentTotal + allTweets.length, // All languages for throughput
-                        sentimenta_id_scanned: currentIdTotal + idOnlyTweets.length, // ID only for clinical rate
-                        sentimenta_total_indicated: currentIndicatedTotal + indicatedTweets.length
+                        sentimenta_total_scanned: (storage.sentimenta_total_scanned || 0) + allTweets.length,
+                        sentimenta_id_scanned: (storage.sentimenta_id_scanned || 0) + idOnlyTweets.length,
+                        sentimenta_total_indicated: (storage.sentimenta_total_indicated || 0) + indicatedTweets.length,
+                        lastScan: { 
+                            time: new Date().toISOString(), 
+                            status: indicatedTweets.length > 0 ? 'alert' : 'ok',
+                            found: indicatedTweets.length
+                        }
+                    };
+
+                    chrome.storage.local.set(updateData, () => {
+                        console.log("Scan success, throughput updated:", updateData.sentimenta_total_scanned);
                     });
 
                     if (indicatedTweets.length > 0 && settings.notifications !== false) {
-                        // Send message to the tab to show a floating toast with tweet identifiers
                         if (sender.tab?.id) {
                             chrome.tabs.sendMessage(sender.tab.id, { 
                                 action: 'show_toast', 
@@ -123,16 +133,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                         }
                     }
                 });
-
-                chrome.storage.local.set({ 
-                    lastScan: { 
-                        time: new Date().toISOString(), 
-                        status: indicatedTweets.length > 0 ? 'alert' : 'ok',
-                        found: indicatedTweets.length
-                    }
-                });
             } catch (err) {
-                console.error("Backend error:", err);
+                console.error("CRITICAL: Scan failed at background process:", err);
             }
         });
     }
