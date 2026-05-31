@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { GlassCard } from '../components/GlassCard';
 import { XaiModal } from '../components/XaiModal';
+import { DeepScanModal } from '../components/DeepScanModal';
 import { 
   History as HistoryIcon, 
   Trash2, 
@@ -51,6 +52,9 @@ export function History({ onNavigate, onScanComplete }) {
   const [scanningHandle, setScanningHandle] = useState(null);
   const [settings, setSettings] = useState({ confidenceThreshold: 15 });
 
+  // Modal state: item yang akan di-deep-scan setelah konfirmasi
+  const [deepScanTarget, setDeepScanTarget] = useState(null);
+
   useEffect(() => {
     chrome.storage.local.get(['sentimenta_history', 'sentimenta_deep_scans', 'sentimenta_settings'], (storage) => {
       setHistory(storage.sentimenta_history || []);
@@ -90,13 +94,12 @@ export function History({ onNavigate, onScanComplete }) {
     return 'text-emerald-500';
   };
 
-  const handleDeepScan = async (item, forceNew = true) => {
-    if (!forceNew && cachedScans[item.handle]) {
-      onScanComplete(cachedScans[item.handle]);
-      return;
-    }
-    const rawHandle = item.handle.replace('@', '');
+  // Dipanggil setelah user konfirmasi di modal
+  const handleDeepScanConfirm = async (targetUser) => {
+    const item = targetUser._historyItem; // objek history asli
+    const rawHandle = (item.handle || '').replace('@', '');
     setScanningHandle(rawHandle);
+
     try {
       chrome.tabs.create({ url: `https://x.com/${rawHandle}`, active: true }, (tab) => {
         const listener = (tabId, info) => {
@@ -107,17 +110,15 @@ export function History({ onNavigate, onScanComplete }) {
                 chrome.tabs.remove(tab.id);
                 if (!response || !response.tweets) {
                   setScanningHandle(null);
+                  setDeepScanTarget(null);
                   return;
                 }
                 const tweetTexts = response.tweets.map(t => t.text);
                 const threshold = (settings?.confidenceThreshold || 15) / 100;
-                const res = await fetch("http://localhost:8000/predict-user", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ 
-                    tweets: tweetTexts,
-                    threshold: threshold
-                  }),
+                const res = await fetch('http://localhost:8000/predict-user', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ tweets: tweetTexts, threshold }),
                 });
                 const result = await res.json();
                 const scanData = {
@@ -134,8 +135,9 @@ export function History({ onNavigate, onScanComplete }) {
                   chrome.storage.local.set({ sentimenta_deep_scans: newScans });
                   setCachedScans(newScans);
                 });
-                onScanComplete(scanData);
                 setScanningHandle(null);
+                setDeepScanTarget(null);
+                onScanComplete(scanData);
               });
             }, 4000);
           }
@@ -144,6 +146,7 @@ export function History({ onNavigate, onScanComplete }) {
       });
     } catch (err) {
       setScanningHandle(null);
+      setDeepScanTarget(null);
     }
   };
 
@@ -321,12 +324,17 @@ export function History({ onNavigate, onScanComplete }) {
                       </button>
                     ) : (
                       <button
-                        onClick={() => handleDeepScan(item)}
+                        onClick={() => setDeepScanTarget({
+                          handle: item.handle || '',
+                          displayName: item.displayName || '',
+                          avatarUrl: item.avatarUrl || '',
+                          _historyItem: item   // bawa data asli untuk dipakai saat confirm
+                        })}
                         disabled={scanningHandle !== null}
-                        className="w-full flex items-center justify-center gap-2 px-5 py-4 rounded-2xl bg-white border border-[#6C5CE7]/30 text-[#6C5CE7] text-[10px] font-black uppercase tracking-widest hover:bg-[#6C5CE7]/5 transition-all"
+                        className="w-full flex items-center justify-center gap-2 px-5 py-4 rounded-2xl bg-white border border-[#6C5CE7]/30 text-[#6C5CE7] text-[10px] font-black uppercase tracking-widest hover:bg-[#6C5CE7]/5 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                       >
-                        {scanningHandle === item.handle.replace('@', '') ? <Loader2 size={16} className="animate-spin" /> : <UserSearch size={16} />}
-                        {scanningHandle === item.handle.replace('@', '') ? '...' : 'deep scan'}
+                        {scanningHandle === (item.handle || '').replace('@', '') ? <Loader2 size={16} className="animate-spin" /> : <UserSearch size={16} />}
+                        {scanningHandle === (item.handle || '').replace('@', '') ? 'scanning...' : 'deep scan'}
                       </button>
                     )}
                   </div>
@@ -339,6 +347,14 @@ export function History({ onNavigate, onScanComplete }) {
 
       {/* xAI Modal */}
       <XaiModal xaiData={xaiData} setXaiData={setXaiData} />
+
+      {/* Deep Scan Confirmation Modal */}
+      <DeepScanModal
+        targetUser={deepScanTarget}
+        onConfirm={handleDeepScanConfirm}
+        onClose={() => { if (!scanningHandle) setDeepScanTarget(null); }}
+        isScanning={!!scanningHandle}
+      />
     </div>
   );
 }
