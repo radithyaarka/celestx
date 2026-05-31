@@ -84,7 +84,7 @@ function App() {
         )}
 
         <main className="flex-1 p-6">
-          {currentPage === 'dashboard' && <Dashboard onNavigate={navigate} />}
+          {currentPage === 'dashboard' && <Dashboard onNavigate={navigate} onOpenAnalysis={(data) => handleOpenAnalysis(data, 'dashboard')} />}
           {currentPage === 'history' && <History onScanComplete={(data) => handleOpenAnalysis(data, 'history')} />}
           {currentPage === 'insights' && <Insights onScanComplete={(data) => handleOpenAnalysis(data, 'insights')} />}
           {currentPage === 'users' && <Users onSelectUser={(data) => handleOpenAnalysis(data, 'users')} />}

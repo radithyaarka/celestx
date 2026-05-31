@@ -2,9 +2,8 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { CircularMeter } from '../components/CircularMeter';
 import { GlassCard } from '../components/GlassCard';
-import { XaiModal } from '../components/XaiModal';
 import { dsmLexicon } from '../constants/lexicon';
-import { 
+import {
     User, Calendar, MessageSquare, ShieldAlert, X,
     ArrowLeft, TrendingUp, Filter, AlertCircle, BarChart3, Clock, LayoutGrid, Share2,
     Activity, Brain, Shield, Info, ExternalLink, Sparkles, FileText, Download, Zap, Trash2, Image as ImageIcon, Globe, Repeat
@@ -15,36 +14,8 @@ export function UserAnalysis({ data, onBack }) {
     const [langFilter, setLangFilter] = useState('id'); // 'id' or 'all'
     const [sortBy, setSortBy] = useState('latest'); // 'latest' or 'intensity'
     const [selectedSymptom, setSelectedSymptom] = useState(null);
-    
-    // xAI State
-    const [xaiData, setXaiData] = useState(null);
-    const [isXaiLoading, setIsXaiLoading] = useState(null);
-
-    const handleXaiExplain = async (item) => {
-        setIsXaiLoading(item.tweet_id || item.text);
-        try {
-            const response = await fetch('http://127.0.0.1:8000/explain', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: item.text })
-            });
-            const data = await response.json();
-            setXaiData({ ...data, originalTweet: item });
-        } catch (error) {
-            console.error("XAI Error:", error);
-            alert("Gagal memanggil xAI. Pastikan server Python menyala dan menginstall module 'shap'.");
-        } finally {
-            setIsXaiLoading(null);
-        }
-    };
-
-    const [settings, setSettings] = useState({ confidenceThreshold: 15 });
 
     useEffect(() => {
-        chrome.storage.local.get(['sentimenta_settings'], (storage) => {
-            if (storage.sentimenta_settings) setSettings(storage.sentimenta_settings);
-        });
-        
         const scrollContainer = document.querySelector('main')?.parentElement;
         if (scrollContainer) scrollContainer.scrollTo(0, 0);
     }, []);
@@ -52,24 +23,18 @@ export function UserAnalysis({ data, onBack }) {
     // Helper to detect language heuristically
     const detectLanguage = (text) => {
         if (!text) return 'id';
-        // 1. Dictionary Check
-        const enWords = /\b(the|is|are|in|to|of|for|with|and|on|at|i|me|my|you|your|he|she|it|this|that|these|those|what|when|where|why|how|do|does|did|but|or|so|because|as|until|while|about|against|between|into|through|during|before|after|above|below|from|up|down|out|off|over|under|again|further|then|once|here|there|all|any|both|each|few|more|most|other|some|such|no|nor|not|only|own|same|than|too|very|can|will|just|don|should|now|lol|lmao|stfu|idk|imo|omg|wtf|bro|dude|shit|fuck|damn|rn|fr|tbh)\b/gi;
-        const idWords = /\b(yang|di|ke|dari|ini|itu|dan|ada|saya|aku|kamu|lo|lu|gw|gue|gwa|bgt|banget|ga|gk|gak|ngga|nggak|tidak|aja|saja|udah|sdh|sudah|kalo|kalau|kl|klo|sih|dong|nih|tuh|kok|wkwk|haha|wk|anjir|njir|anjing|bgst|bangsat|tolol|bego|goblok|gimana|gmn|gitu|gtu|gt|gini|kenapa|knp|siapa|sapa|apa|apaan|tapi|tpi|karena|krn|pas|waktu|lg|lagi|sama|sm|buat|bwt|dgn|dengan|kyk|kayak|kek|bisa|bsa|jg|juga|mah|teh|atuh|euy|nya|ya|iya|y|g|blm|belum|coba|cb|terus|trs|abis|habis|deh|untuk|utk)\b/gi;
-        
-        // 2. Affix/Pattern Check (Heuristics)
-        const enAffixes = /\b\w{3,}(tion|ing|ed|ly|ment|ness|ity|ous|ive|able|ible|less|ful)\b/gi;
-        const idAffixes = /\b(meng|meny|peng|peny|diper|keber|keter)\w{3,}|\w{3,}(nya|lah|kah|pun)\b/gi;
+        const enWords = /\b(the|is|are|in|to|of|for|with|and|on|at|i|me|my|you|your|he|she|it)\b/gi;
+        const idWords = /\b(yang|di|ke|dari|ini|itu|dan|ada|saya|aku|kamu|lo|gw|ga|tidak|untuk)\b/gi;
 
-        const enScore = (text.match(enWords) || []).length + (text.match(enAffixes) || []).length;
-        const idScore = (text.match(idWords) || []).length + (text.match(idAffixes) || []).length;
-        
-        // Exact tie goes to ID (Indonesian focus)
-        return enScore > idScore ? 'en' : 'id';
+        const enMatches = (text.match(enWords) || []).length;
+        const idMatches = (text.match(idWords) || []).length;
+
+        return enMatches > idMatches ? 'en' : 'id';
     };
 
     const handleDeleteScan = () => {
         if (!window.confirm(`Hapus seluruh data deep scan untuk ${data?.user?.handle}? Tindakan ini tidak dapat dibatalkan.`)) return;
-        
+
         chrome.storage.local.get(['sentimenta_deep_scans'], (result) => {
             const scans = result.sentimenta_deep_scans || {};
             const handle = data?.user?.handle;
@@ -98,12 +63,12 @@ export function UserAnalysis({ data, onBack }) {
     const userData = data.user || {};
     const summaryData = data.summary || {};
     const detailsData = Array.isArray(data.details) ? data.details : [];
-    
+
     // Dynamic Risk Score calculation based on language filter (Denominator = Total Scanned Tweets)
     const dynamicSeverityScore = useMemo(() => {
         const idTweets = detailsData.filter(t => detectLanguage(t.text) === 'id');
         if (idTweets.length === 0) return 0;
-        
+
         // 1. Global Average (Total ID Score / Total Scanned Tweets)
         const totalIdScore = idTweets.reduce((acc, curr) => acc + (Number(curr.score || curr.confidence) || 0), 0);
         const globalAvg = totalIdScore / (idTweets.length || 1);
@@ -114,7 +79,7 @@ export function UserAnalysis({ data, onBack }) {
             .sort((a, b) => b - a);
         const topScores = sortedScores.slice(0, 10);
         const peakAvg = topScores.reduce((a, b) => a + b, 0) / (topScores.length || 1);
-        
+
         // 3. Hybrid Result
         return (globalAvg + peakAvg) / 2;
     }, [detailsData]); // Hybrid Risk Model (Global + Peak)
@@ -124,26 +89,20 @@ export function UserAnalysis({ data, onBack }) {
 
     const clinicalProfile = useMemo(() => {
         const counts = {};
-        
+
         detailsData.forEach(tweet => {
             if (detectLanguage(tweet.text) === 'en') return;
 
             const text = (tweet.text || "").toLowerCase();
-            const thresh = (settings.confidenceThreshold || 15) / 100;
-            const isIndicated = tweet.label === 'INDICATED' || (Number(tweet.score || tweet.confidence) > thresh);
-            
+            const isIndicated = tweet.label === 'INDICATED' || (Number(tweet.score || tweet.confidence) > 0.5);
+
             // Only search for symptoms if the AI actually indicates risk
             if (isIndicated) {
-                // Prioritize AI-detected symptom from backend
-                let matchedId = tweet.symptom || null;
-                
-                // Fallback to keyword matching only if AI didn't provide one
-                if (!matchedId) {
-                    for (const category of dsmLexicon) {
-                        if (category.keywords.some(kw => text.includes(kw.toLowerCase()))) {
-                            matchedId = category.id;
-                            break;
-                        }
+                let matchedId = null;
+                for (const category of dsmLexicon) {
+                    if (category.keywords.some(kw => text.includes(kw.toLowerCase()))) {
+                        matchedId = category.id;
+                        break;
                     }
                 }
 
@@ -163,7 +122,7 @@ export function UserAnalysis({ data, onBack }) {
             ...item,
             count: counts[item.id] || 0
         })).sort((a, b) => b.count - a.count);
-    }, [detailsData, langFilter, settings.confidenceThreshold]);
+    }, [detailsData, langFilter]);
 
     const topIndicator = clinicalProfile[0]?.count > 0 ? clinicalProfile[0] : null;
 
@@ -196,7 +155,7 @@ export function UserAnalysis({ data, onBack }) {
         .filter(item => {
             const text = item?.text || "";
             const isRetweet = text.startsWith('RT ') || item?.isRetweet;
-            
+
             // Language Filter
             const lang = detectLanguage(text);
             if (langFilter === 'id' && lang === 'en') return false;
@@ -213,7 +172,7 @@ export function UserAnalysis({ data, onBack }) {
     return (
         <div className="max-w-7xl mx-auto space-y-10 pb-20 lowercase px-4 relative">
             <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-[#6C5CE7]/5 to-transparent -z-10" />
-            
+
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pt-8">
                 <div className="flex items-center gap-6">
                     <button onClick={onBack} className="p-4 bg-white hover:bg-[#6C5CE7] hover:text-white rounded-2xl shadow-sm border border-black/5 transition-all group">
@@ -227,7 +186,7 @@ export function UserAnalysis({ data, onBack }) {
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
-                    <button 
+                    <button
                         onClick={handleDeleteScan}
                         className="flex items-center gap-2 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white px-5 py-3 rounded-xl border border-rose-500/10 transition-all font-black text-[10px] uppercase tracking-widest"
                     >
@@ -283,7 +242,7 @@ export function UserAnalysis({ data, onBack }) {
                                 <h3 className="text-lg font-black text-[#2D3436] flex items-center gap-3 tracking-tighter uppercase shrink-0">
                                     <MessageSquare size={22} className="text-[#6C5CE7]" /> feed bukti klinis
                                 </h3>
-                                
+
                                 <div className="flex flex-wrap items-center gap-3">
                                     {/* View Filter */}
                                     <div className="flex bg-slate-100 p-1 rounded-xl gap-0.5">
@@ -296,14 +255,14 @@ export function UserAnalysis({ data, onBack }) {
 
                                     {/* Language Filter */}
                                     <div className="flex bg-blue-500/5 p-1 rounded-xl gap-0.5 border border-blue-500/10">
-                                        <button 
-                                            onClick={() => setLangFilter('id')} 
+                                        <button
+                                            onClick={() => setLangFilter('id')}
                                             className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${langFilter === 'id' ? 'bg-blue-500 text-white shadow-sm' : 'text-blue-500/40 hover:text-blue-500'}`}
                                         >
                                             ID
                                         </button>
-                                        <button 
-                                            onClick={() => setLangFilter('all')} 
+                                        <button
+                                            onClick={() => setLangFilter('all')}
                                             className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${langFilter === 'all' ? 'bg-blue-500 text-white shadow-sm' : 'text-blue-500/40 hover:text-blue-500'}`}
                                         >
                                             ALL ({enTweetsCount})
@@ -339,11 +298,10 @@ export function UserAnalysis({ data, onBack }) {
                                     const isRetweet = text.startsWith('RT ') || item?.isRetweet;
                                     const isEnglish = detectLanguage(text) === 'en';
                                     return (
-                                        <div key={idx} className={`p-6 rounded-[2rem] border transition-all group relative overflow-hidden ${
-                                            isEnglish 
-                                            ? 'bg-[#F3F0FF] border-[#6C5CE7]/30 shadow-md scale-[0.98]' 
-                                            : 'bg-white border-black/5 hover:border-[#6C5CE7]/20 shadow-sm'
-                                        }`}>
+                                        <div key={idx} className={`p-6 rounded-[2rem] border transition-all group relative overflow-hidden ${isEnglish
+                                                ? 'bg-[#F3F0FF] border-[#6C5CE7]/30 shadow-md scale-[0.98]'
+                                                : 'bg-white border-black/5 hover:border-[#6C5CE7]/20 shadow-sm'
+                                            }`}>
                                             <div className="flex gap-4">
                                                 <div className="shrink-0">
                                                     {tweetAvatar ? <img src={tweetAvatar} alt="" className="w-10 h-10 rounded-full border border-black/5 shadow-sm" /> : <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-400"><User size={20} /></div>}
@@ -355,9 +313,9 @@ export function UserAnalysis({ data, onBack }) {
                                                             <div className="flex items-center gap-3 mt-0.5">
                                                                 <div className="flex items-center gap-1.5 text-[9px] text-slate-300 font-black uppercase tracking-widest"><Clock size={10} /><span>{formatDate(item)}</span></div>
                                                                 {item?.handle && (
-                                                                    <a 
-                                                                        href={`https://x.com/${item.handle.replace('@', '')}`} 
-                                                                        target="_blank" 
+                                                                    <a
+                                                                        href={`https://x.com/${item.handle.replace('@', '')}`}
+                                                                        target="_blank"
                                                                         rel="noopener noreferrer"
                                                                         className="text-slate-300 hover:text-[#6C5CE7] transition-colors"
                                                                         title="view original tweet"
@@ -369,25 +327,24 @@ export function UserAnalysis({ data, onBack }) {
                                                         </div>
                                                         <div className="text-right">
                                                             <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-1">
-                                                                {isEnglish ? 'language' : 'intensity'}
+                                                                {isEnglish ? 'language' : 'evidence strength'}
                                                             </p>
-                                                            <p className={`text-[9px] font-black px-3 py-1 rounded-lg transition-all ${
-                                                                isEnglish 
-                                                                ? 'text-[#5849D4] bg-[#6C5CE7]/10 border border-[#6C5CE7]/20' 
-                                                                : getRiskColor(item?.score || 0)
-                                                            }`}>
+                                                            <p className={`text-[9px] font-black px-3 py-1 rounded-lg transition-all ${isEnglish
+                                                                    ? 'text-[#5849D4] bg-[#6C5CE7]/10 border border-[#6C5CE7]/20'
+                                                                    : getRiskColor(item?.score || 0)
+                                                                }`}>
                                                                 {isEnglish ? 'EXTERNAL LANGUAGE - NO SCORE' : `${((item?.score || 0) * 100).toFixed(0)}%`}
                                                             </p>
                                                         </div>
                                                     </div>
                                                     <p className="text-slate-600 text-[14px] leading-relaxed italic">"{text}"</p>
-                                                    
-                                                    {/* Badges & xAI Button */}
-                                                    <div className="flex items-center justify-between gap-2 pt-2">
-                                                        <div className="flex items-center gap-2">
+
+                                                    {/* DSM Symptom Badge (Only show if match found or is English) */}
+                                                    {(item.matchedLabel || isEnglish) && (
+                                                        <div className="flex items-center gap-2 pt-2">
                                                             {(() => {
                                                                 const symptom = dsmLexicon.find(l => l.id === item.matchedLabel);
-                                                                
+
                                                                 if (isEnglish) {
                                                                     return (
                                                                         <div className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 bg-slate-100 text-slate-400 border border-slate-200">
@@ -407,23 +364,7 @@ export function UserAnalysis({ data, onBack }) {
                                                                 return null;
                                                             })()}
                                                         </div>
-
-                                                        {/* xAI Trigger Button */}
-                                                        {(!isEnglish && (item?.score > 0.15 || item?.matchedLabel)) && (
-                                                            <button 
-                                                                onClick={() => handleXaiExplain(item)}
-                                                                disabled={isXaiLoading === (item.tweet_id || item.text)}
-                                                                className="shrink-0 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 bg-[#6C5CE7]/10 text-[#6C5CE7] hover:bg-[#6C5CE7] hover:text-white transition-all border border-[#6C5CE7]/20 shadow-sm"
-                                                            >
-                                                                {isXaiLoading === (item.tweet_id || item.text) ? (
-                                                                    <span className="animate-spin">⌛</span>
-                                                                ) : (
-                                                                    <Sparkles size={10} />
-                                                                )}
-                                                                {isXaiLoading === (item.tweet_id || item.text) ? 'analyzing...' : 'xAI Explain'}
-                                                            </button>
-                                                        )}
-                                                    </div>
+                                                    )}
 
                                                     {tweetImg && <div className="mt-3 rounded-2xl overflow-hidden border border-black/5 shadow-sm bg-slate-100"><img src={tweetImg} alt="" className="w-full h-auto max-h-80 object-cover" /></div>}
                                                 </div>
@@ -446,13 +387,12 @@ export function UserAnalysis({ data, onBack }) {
                         const total = detailsData.length || 1;
                         const percentage = (topic.count / total) * 100;
                         return (
-                            <div 
-                                key={topic.id} 
-                                className={`p-4 rounded-2xl transition-all duration-300 ${
-                                    topic.count > 0 
-                                    ? 'cursor-pointer hover:bg-[#6C5CE7]/5 hover:shadow-md hover:scale-[1.02] border border-transparent hover:border-[#6C5CE7]/20' 
-                                    : 'opacity-40'
-                                }`}
+                            <div
+                                key={topic.id}
+                                className={`p-4 rounded-2xl transition-all duration-300 ${topic.count > 0
+                                        ? 'cursor-pointer hover:bg-[#6C5CE7]/5 hover:shadow-md hover:scale-[1.02] border border-transparent hover:border-[#6C5CE7]/20'
+                                        : 'opacity-40'
+                                    }`}
                                 onClick={() => topic.count > 0 && setSelectedSymptom(topic)}
                             >
                                 <div className="flex justify-between text-[10px] font-black uppercase">
@@ -469,7 +409,7 @@ export function UserAnalysis({ data, onBack }) {
             </GlassCard>
 
             {/* Personal Intensity Trend (RESTORATION) */}
-            <motion.div 
+            <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="p-10 bg-[#6C5CE7] text-white rounded-[2.5rem] relative overflow-hidden shadow-2xl"
@@ -526,10 +466,10 @@ export function UserAnalysis({ data, onBack }) {
                                 .sort((a, b) => getTs(a) - getTs(b));
 
                             const samplingCount = 12;
-                            const sampled = sortedPosts.length > samplingCount 
+                            const sampled = sortedPosts.length > samplingCount
                                 ? sortedPosts.filter((_, i) => i % Math.ceil(sortedPosts.length / samplingCount) === 0).slice(0, samplingCount)
                                 : sortedPosts;
-                            
+
                             const points = sampled.map(d => d.score || 0);
                             const avgY = 200 - (severityScore * 180);
 
@@ -549,19 +489,19 @@ export function UserAnalysis({ data, onBack }) {
 
                                         {/* Mid-line separator */}
                                         <line x1="80" y1="100" x2="920" y2="100" stroke="white" strokeWidth="0.5" strokeDasharray="4 4" opacity="0.1" />
-                                        
+
                                         {/* Area Fill */}
                                         <path d={`M 80,200 L ${points.map((v, i) => `${80 + (i / (points.length - 1 || 1)) * 840},${200 - v * 180}`).join(' L ')} L 920,200 Z`} fill="url(#userTrendGradUp)" />
-                                        
+
                                         {/* Main Line */}
                                         <path d={`M ${points.map((v, i) => `${80 + (i / (points.length - 1 || 1)) * 840},${200 - v * 180}`).join(' L ')}`} fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-                                        
+
                                         {sampled.map((post, i) => {
                                             const v = post.score || 0;
                                             return (
                                                 <g key={i} className="group/u-point cursor-pointer">
                                                     <circle cx={80 + (i / (points.length - 1 || 1)) * 840} cy={200 - v * 180} r="6" fill="#6C5CE7" stroke="white" strokeWidth="3" className="transition-all group-hover/u-point:r-8" />
-                                                    
+
                                                     {/* ENHANCED HOVER TOOLTIP (WITH TIME) */}
                                                     <g className="opacity-0 group-hover/u-point:opacity-100 transition-opacity pointer-events-none">
                                                         <rect x={80 + (i / (points.length - 1 || 1)) * 840 - 60} y={200 - v * 180 - 60} width="120" height="45" rx="10" fill="white" className="shadow-2xl" />
@@ -617,12 +557,12 @@ export function UserAnalysis({ data, onBack }) {
                         <h3 className="text-3xl font-black tracking-tighter leading-tight">
                             {(() => {
                                 if (severityScore > 0.5) {
-                                    return topIndicator 
-                                        ? `analisis menunjukkan prevalensi ${topIndicator.label} yang sangat signifikan.` 
+                                    return topIndicator
+                                        ? `analisis menunjukkan prevalensi ${topIndicator.label} yang sangat signifikan.`
                                         : "terdeteksi pola emosional yang sangat intens namun tidak spesifik secara klinis.";
                                 } else if (severityScore > 0.15) {
-                                    return topIndicator 
-                                        ? `terdeteksi indikasi ${topIndicator.label} dalam intensitas sedang.` 
+                                    return topIndicator
+                                        ? `terdeteksi indikasi ${topIndicator.label} dalam intensitas sedang.`
                                         : "terdeteksi fluktuasi emosional ringan yang bersifat umum.";
                                 } else {
                                     return "analisis menunjukkan kondisi linguistik yang stabil dan rendah risiko.";
@@ -633,11 +573,11 @@ export function UserAnalysis({ data, onBack }) {
                             {(() => {
                                 const tweetCount = detailsData.length;
                                 if (severityScore > 0.5) {
-                                    return topIndicator 
+                                    return topIndicator
                                         ? `berdasarkan ${tweetCount} aktivitas terakhir, sistem mendeteksi tekanan psikologis yang tinggi. pola bahasa sangat kuat merujuk pada "${topIndicator.label}" dengan penggunaan kata kunci seperti "${topIndicator.keywords.slice(0, 2).join(', ')}". diperlukan perhatian profesional segera.`
                                         : `sistem mendeteksi luapan emosional yang sangat intens dalam bahasa user. meskipun tidak merujuk pada gejala klinis spesifik, frekuensi nada negatif yang tinggi menunjukkan adanya distress berat yang memerlukan observasi lebih lanjut.`;
                                 } else if (severityScore > 0.15) {
-                                    return topIndicator 
+                                    return topIndicator
                                         ? `dalam ${tweetCount} aktivitas terakhir, terdapat indikasi gejala "${topIndicator.label}" yang muncul secara sporadis. intensitas risiko berada pada level moderat, menunjukkan adanya tekanan psikologis awal yang perlu dipantau.`
                                         : `terdapat pola bahasa yang menunjukkan keresahan emosional umum dalam intensitas sedang. tidak ditemukan bukti klinis yang spesifik, namun fluktuasi ini mencerminkan kondisi psikologis yang sedang kurang stabil.`;
                                 } else {
@@ -646,7 +586,7 @@ export function UserAnalysis({ data, onBack }) {
                             })()}
                         </p>
                         <div className="pt-4 flex flex-wrap gap-4">
-                            <button onClick={() => {}} className="bg-[#6C5CE7] hover:bg-[#5b4bc4] text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2"><Download size={16} /> download technical report</button>
+                            <button onClick={() => { }} className="bg-[#6C5CE7] hover:bg-[#5b4bc4] text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2"><Download size={16} /> download technical report</button>
                             <a href="https://www.psychiatry.org/psychiatrists/practice/dsm" target="_blank" rel="noopener noreferrer" className="bg-white/10 hover:bg-white/20 text-white border border-white/10 px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2"><FileText size={16} /> medical citation refs</a>
                         </div>
                     </div>
@@ -660,7 +600,7 @@ export function UserAnalysis({ data, onBack }) {
             {/* SYMPTOM DRILL-DOWN MODAL */}
             {selectedSymptom && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-md">
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         className="bg-white w-full max-w-4xl max-h-[85vh] rounded-[3rem] shadow-2xl overflow-hidden flex flex-col border border-white/20"
@@ -679,7 +619,7 @@ export function UserAnalysis({ data, onBack }) {
                                     </div>
                                 </div>
                             </div>
-                            <button 
+                            <button
                                 onClick={() => setSelectedSymptom(null)}
                                 className="p-3 bg-slate-100 hover:bg-rose-500 hover:text-white text-slate-400 rounded-2xl transition-all shadow-sm"
                             >
@@ -695,7 +635,7 @@ export function UserAnalysis({ data, onBack }) {
                                     const text = item.text || "";
                                     const tweetImg = item.imageUrl || item.mediaUrl;
                                     const isEnglish = detectLanguage(text) === 'en';
-                                    
+
                                     const isRetweet = text.startsWith('RT ') || item?.isRetweet;
                                     const authorName = item?.displayName || item?.name || userData.displayName;
                                     const authorHandle = item?.handle || item?.screen_name || userData.handle;
@@ -734,7 +674,7 @@ export function UserAnalysis({ data, onBack }) {
                                                     </div>
                                                 </div>
                                             </div>
-                                            
+
                                             <div className="pl-14">
                                                 <p className="text-slate-600 text-[15px] leading-relaxed italic mb-4">"{text}"</p>
                                                 {tweetImg && (
@@ -756,9 +696,6 @@ export function UserAnalysis({ data, onBack }) {
                     </motion.div>
                 </div>
             )}
-
-            {/* xAI Modal */}
-            <XaiModal xaiData={xaiData} setXaiData={setXaiData} />
         </div>
     );
 }
