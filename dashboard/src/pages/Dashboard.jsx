@@ -8,7 +8,7 @@ import {
 
 export function Dashboard({ onNavigate }) {
   const [lastScan, setLastScan] = useState(null);
-
+  
   // xAI State
   const [xaiData, setXaiData] = useState(null);
   const [isXaiLoading, setIsXaiLoading] = useState(null);
@@ -16,32 +16,36 @@ export function Dashboard({ onNavigate }) {
   const handleXaiExplain = async (item) => {
     setIsXaiLoading(item.id || item.text);
     try {
-      const response = await fetch('http://127.0.0.1:8000/explain', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: item.text })
-      });
-      const data = await response.json();
-      setXaiData({ ...data, originalTweet: item });
+        const response = await fetch('http://127.0.0.1:8000/explain', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: item.text })
+        });
+        const data = await response.json();
+        setXaiData({ ...data, originalTweet: item });
     } catch (error) {
-      console.error("XAI Error:", error);
-      alert("Gagal memanggil xAI. Pastikan server Python menyala dan menginstall module 'shap'.");
+        console.error("XAI Error:", error);
+        alert("Gagal memanggil xAI. Pastikan server Python menyala dan menginstall module 'shap'.");
     } finally {
-      setIsXaiLoading(null);
+        setIsXaiLoading(null);
     }
   };
   const [history, setHistory] = useState([]);
   const [totalScanned, setTotalScanned] = useState(0);
   const [idScanned, setIdScanned] = useState(0);
+  const [totalIndicated, setTotalIndicated] = useState(0);
+  const [settings, setSettings] = useState({ confidenceThreshold: 15 });
   const [scanning, setScanning] = useState(false);
   const [backendStatus, setBackendStatus] = useState('checking');
 
   const refreshData = useCallback(() => {
     if (window.chrome && chrome.storage) {
-      chrome.storage.local.get(['sentimenta_history', 'lastScan', 'sentimenta_total_scanned', 'sentimenta_id_scanned'], (storage) => {
+      chrome.storage.local.get(['sentimenta_history', 'lastScan', 'sentimenta_total_scanned', 'sentimenta_id_scanned', 'sentimenta_total_indicated', 'sentimenta_settings'], (storage) => {
         setHistory(storage.sentimenta_history || []);
         setTotalScanned(storage.sentimenta_total_scanned || 0);
         setIdScanned(storage.sentimenta_id_scanned || 0);
+        setTotalIndicated(storage.sentimenta_total_indicated !== undefined ? storage.sentimenta_total_indicated : (storage.sentimenta_history || []).filter(item => item.label === 'INDICATED').length);
+        if (storage.sentimenta_settings) setSettings(storage.sentimenta_settings);
         if (storage.lastScan) setLastScan(storage.lastScan);
       });
     }
@@ -98,7 +102,9 @@ export function Dashboard({ onNavigate }) {
 
   const getRiskColor = (score) => {
     const s = score * 100;
-    if (s <= 15) return 'text-emerald-500';
+    const thresh = settings.confidenceThreshold || 15;
+    
+    if (s <= thresh) return 'text-emerald-500';
     if (s <= 50) return 'text-sky-500';
     if (s <= 75) return 'text-amber-500';
     return 'text-rose-500';
@@ -109,25 +115,29 @@ export function Dashboard({ onNavigate }) {
     // 1. Dictionary Check
     const enWords = /\b(the|is|are|in|to|of|for|with|and|on|at|i|me|my|you|your|he|she|it|this|that|these|those|what|when|where|why|how|do|does|did|but|or|so|because|as|until|while|about|against|between|into|through|during|before|after|above|below|from|up|down|out|off|over|under|again|further|then|once|here|there|all|any|both|each|few|more|most|other|some|such|no|nor|not|only|own|same|than|too|very|can|will|just|don|should|now|lol|lmao|stfu|idk|imo|omg|wtf|bro|dude|shit|fuck|damn|rn|fr|tbh)\b/gi;
     const idWords = /\b(yang|di|ke|dari|ini|itu|dan|ada|saya|aku|kamu|lo|lu|gw|gue|gwa|bgt|banget|ga|gk|gak|ngga|nggak|tidak|aja|saja|udah|sdh|sudah|kalo|kalau|kl|klo|sih|dong|nih|tuh|kok|wkwk|haha|wk|anjir|njir|anjing|bgst|bangsat|tolol|bego|goblok|gimana|gmn|gitu|gtu|gt|gini|kenapa|knp|siapa|sapa|apa|apaan|tapi|tpi|karena|krn|pas|waktu|lg|lagi|sama|sm|buat|bwt|dgn|dengan|kyk|kayak|kek|bisa|bsa|jg|juga|mah|teh|atuh|euy|nya|ya|iya|y|g|blm|belum|coba|cb|terus|trs|abis|habis|deh|untuk|utk)\b/gi;
-
+    
     // 2. Affix/Pattern Check (Heuristics)
     const enAffixes = /\b\w{3,}(tion|ing|ed|ly|ment|ness|ity|ous|ive|able|ible|less|ful)\b/gi;
     const idAffixes = /\b(meng|meny|peng|peny|diper|keber|keter)\w{3,}|\w{3,}(nya|lah|kah|pun)\b/gi;
 
     const enScore = (text.match(enWords) || []).length + (text.match(enAffixes) || []).length;
     const idScore = (text.match(idWords) || []).length + (text.match(idAffixes) || []).length;
-
+    
     // Exact tie goes to ID (Indonesian focus)
     return enScore > idScore ? 'en' : 'id';
   };
 
   const idHistory = history.filter(h => detectLanguage(h.text) === 'id');
-  const indicated = idHistory.filter(h => h.label === 'INDICATED');
+  const threshFraction = (settings.confidenceThreshold || 15) / 100;
+  
+  // Hitung ulang secara LIVE berdasarkan threshold saat ini
+  const indicated = idHistory.filter(h => (h.confidence || 0) >= threshFraction);
   const uniqueUsers = [...new Set(idHistory.map(h => h.handle).filter(Boolean))].length;
   const recentAlerts = indicated.slice(0, 10);
 
-  // Rate calculation using Indonesian-only base
-  const alertRate = idScanned > 0 ? ((indicated.length / idScanned) * 100).toFixed(0) : 0;
+  // Rate calculation menggunakan data yang terfilter secara live
+  const dynamicTotalIndicated = indicated.length;
+  const alertRate = idScanned > 0 ? ((dynamicTotalIndicated / idScanned) * 100).toFixed(0) : 0;
 
   const totalIndicatedConfidence = idHistory.reduce((a, b) => a + (b.confidence || 0), 0);
   const estimatedNormalCount = Math.max(0, idScanned - idHistory.length);
@@ -156,7 +166,7 @@ export function Dashboard({ onNavigate }) {
 
         {/* Stats Section Revamp */}
         <div className="flex flex-col gap-4 shrink-0">
-
+          
           {/* Main Throughput Card */}
           <div className="bg-white border border-black/5 p-5 rounded-3xl shadow-sm relative overflow-visible">
             <div className="flex justify-between items-start border-b border-black/5 pb-4 mb-4">
@@ -176,7 +186,7 @@ export function Dashboard({ onNavigate }) {
               </div>
               <div className="p-3 bg-[#6C5CE7]/10 rounded-2xl text-[#6C5CE7]"><Activity size={24} /></div>
             </div>
-
+            
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <div className="flex items-center gap-1.5 mb-1">
@@ -191,7 +201,7 @@ export function Dashboard({ onNavigate }) {
                     </div>
                   </div>
                 </div>
-                <p className="text-2xl font-black text-rose-500 leading-none">{indicated.length}</p>
+                <p className="text-2xl font-black text-rose-500 leading-none">{dynamicTotalIndicated}</p>
               </div>
               <div>
                 <div className="flex items-center gap-1.5 mb-1.5">
@@ -206,7 +216,7 @@ export function Dashboard({ onNavigate }) {
                     </div>
                   </div>
                 </div>
-                <p className="text-2xl font-black text-blue-400 leading-none">{Math.max(0, idScanned - indicated.length)}</p>
+                <p className="text-2xl font-black text-blue-400 leading-none">{Math.max(0, idScanned - totalIndicated)}</p>
               </div>
               <div>
                 <div className="flex items-center gap-1.5 mb-1.5">
@@ -332,71 +342,71 @@ export function Dashboard({ onNavigate }) {
             recentAlerts.map((item, idx) => {
               const isHighlighted = highlightText && item.text.includes(highlightText);
               return (
-                <div
-                  key={idx}
-                  className={`p-6 rounded-[2rem] border transition-all duration-500 group relative overflow-hidden ${isHighlighted ? 'bg-[#6C5CE7]/5 border-[#6C5CE7]/40 shadow-[0_0_40px_rgba(108,92,231,0.3)] scale-[1.02] z-10' : 'border-black/[0.03] bg-white shadow-sm hover:border-[#6C5CE7]/20'}`}
-                >
-                  <div className="flex gap-4">
-                    <div className="shrink-0">
-                      {item.avatarUrl ? (
-                        <img src={item.avatarUrl} alt="" className="w-10 h-10 rounded-full border border-black/5 shadow-sm" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-300"><User size={20} /></div>
-                      )}
-                    </div>
+              <div 
+                key={idx} 
+                className={`p-6 rounded-[2rem] border transition-all duration-500 group relative overflow-hidden ${isHighlighted ? 'bg-[#6C5CE7]/5 border-[#6C5CE7]/40 shadow-[0_0_40px_rgba(108,92,231,0.3)] scale-[1.02] z-10' : 'border-black/[0.03] bg-white shadow-sm hover:border-[#6C5CE7]/20'}`}
+              >
+                <div className="flex gap-4">
+                  <div className="shrink-0">
+                    {item.avatarUrl ? (
+                      <img src={item.avatarUrl} alt="" className="w-10 h-10 rounded-full border border-black/5 shadow-sm" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-300"><User size={20} /></div>
+                    )}
+                  </div>
 
-                    <div className="flex-1 space-y-3">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-black text-[#2D3436] leading-none">{item.displayName || "unknown"}</span>
-                            <span className="text-[10px] font-medium text-slate-400">{item.handle || ""}</span>
-                            {item.isRetweet && (
-                              <span className="bg-[#6C5CE7]/10 text-[#6C5CE7] text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md flex items-center gap-1 border border-[#6C5CE7]/10">
-                                <Repeat size={8} /> retweet
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1.5 text-[9px] text-slate-300 font-black uppercase tracking-widest mt-1">
-                            <Clock size={10} />
-                            <span>{item.date ? new Date(item.date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : 'baru saja'}</span>
-                          </div>
+                  <div className="flex-1 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-black text-[#2D3436] leading-none">{item.displayName || "unknown"}</span>
+                          <span className="text-[10px] font-medium text-slate-400">{item.handle || ""}</span>
+                          {item.isRetweet && (
+                            <span className="bg-[#6C5CE7]/10 text-[#6C5CE7] text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md flex items-center gap-1 border border-[#6C5CE7]/10">
+                              <Repeat size={8} /> retweet
+                            </span>
+                          )}
                         </div>
-                        <div className="text-right shrink-0">
-                          <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-0.5">intensity</p>
-                          <p className={`text-2xl font-black leading-none ${getRiskColor(item.confidence)}`}>{(item.confidence * 100).toFixed(0)}%</p>
+                        <div className="flex items-center gap-1.5 text-[9px] text-slate-300 font-black uppercase tracking-widest mt-1">
+                          <Clock size={10} />
+                          <span>{item.date ? new Date(item.date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : 'baru saja'}</span>
                         </div>
                       </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-0.5">intensity</p>
+                        <p className={`text-2xl font-black leading-none ${getRiskColor(item.confidence)}`}>{(item.confidence * 100).toFixed(0)}%</p>
+                      </div>
+                    </div>
 
-                      <p className="text-slate-500 text-sm leading-relaxed italic">
-                        "{item.text}"
-                      </p>
+                    <p className="text-slate-500 text-sm leading-relaxed italic">
+                      "{item.text}"
+                    </p>
 
-                      {/* Media Image */}
-                      {(item.imageUrl || item.mediaUrl) && (
-                        <div className="mt-3 rounded-2xl overflow-hidden border border-black/5 shadow-sm bg-slate-100">
-                          <img src={item.imageUrl || item.mediaUrl} alt="" className="w-full h-auto max-h-60 object-cover" />
-                        </div>
-                      )}
+                    {/* Media Image */}
+                    {(item.imageUrl || item.mediaUrl) && (
+                      <div className="mt-3 rounded-2xl overflow-hidden border border-black/5 shadow-sm bg-slate-50 max-w-md">
+                        <img src={item.imageUrl || item.mediaUrl} alt="" className="w-full h-auto block" />
+                      </div>
+                    )}
 
-                      {/* xAI Button */}
-                      <div className="mt-3 pt-3 border-t border-black/5 flex justify-end">
-                        <button
+                    {/* xAI Button */}
+                    <div className="mt-3 pt-3 border-t border-black/5 flex justify-end">
+                      <button 
                           onClick={() => handleXaiExplain(item)}
                           disabled={isXaiLoading === (item.id || item.text)}
                           className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 bg-[#6C5CE7]/10 text-[#6C5CE7] hover:bg-[#6C5CE7] hover:text-white transition-all border border-[#6C5CE7]/20 shadow-sm"
-                        >
+                      >
                           {isXaiLoading === (item.id || item.text) ? (
-                            <span className="animate-spin">⌛</span>
+                              <span className="animate-spin">⌛</span>
                           ) : (
-                            <Sparkles size={10} />
+                              <Sparkles size={10} />
                           )}
                           {isXaiLoading === (item.id || item.text) ? 'analyzing...' : 'xAI Explain'}
-                        </button>
-                      </div>
+                      </button>
                     </div>
                   </div>
                 </div>
+              </div>
               );
             })
           )}
