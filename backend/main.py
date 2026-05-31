@@ -89,11 +89,11 @@ except Exception as e:
 # --- SKEMA DATA ---
 class SingleTweetInput(BaseModel):
     text: str
-    threshold: float = 0.15
+    threshold: float = 0.30
 
 class BatchTweetInput(BaseModel):
     tweets: List[str]
-    threshold: float = 0.15
+    threshold: float = 0.30
 
 # --- ENDPOINTS ---
 
@@ -115,7 +115,7 @@ async def predict_single(input_data: SingleTweetInput):
             score_depresi = res['score']
             break
             
-    # Menggunakan threshold dari input (default 0.15)
+    # Menggunakan threshold dari input (default 0.30)
     label = "INDICATED" if score_depresi > input_data.threshold else "NORMAL"
     
     symptom = None
@@ -171,7 +171,7 @@ async def predict_batch(input_data: BatchTweetInput):
         "total_tweets": len(input_data.tweets),
         "indicated_tweets": indicated_count,
         "average_risk_score": round(float(avg_score), 4),
-        "status": "AT RISK" if avg_score > 0.15 else "STABLE",
+        "status": "AT RISK" if avg_score > 0.30 else "STABLE",
         "details": details
     }
 
