@@ -8,12 +8,35 @@ import {
     ArrowLeft, TrendingUp, Filter, AlertCircle, BarChart3, Clock, LayoutGrid, Share2,
     Activity, Brain, Shield, Info, ExternalLink, Sparkles, FileText, Download, Zap, Trash2, Image as ImageIcon, Globe, Repeat
 } from 'lucide-react';
+import { XaiModal } from '../components/XaiModal';
 
 export function UserAnalysis({ data, onBack }) {
     const [filter, setFilter] = useState('all'); // 'all', 'original', 'retweets'
     const [langFilter, setLangFilter] = useState('id'); // 'id' or 'all'
     const [sortBy, setSortBy] = useState('latest'); // 'latest' or 'intensity'
     const [selectedSymptom, setSelectedSymptom] = useState(null);
+    
+    // xAI State
+    const [xaiData, setXaiData] = useState(null);
+    const [isXaiLoading, setIsXaiLoading] = useState(null);
+
+    const handleXaiExplain = async (item) => {
+        setIsXaiLoading(item.id || item.text);
+        try {
+            const response = await fetch('http://127.0.0.1:8000/explain', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: item.text })
+            });
+            const data = await response.json();
+            setXaiData({ ...data, originalTweet: item });
+        } catch (error) {
+            console.error("XAI Error:", error);
+            alert("Gagal memanggil xAI. Pastikan server Python menyala dan menginstall module 'shap'.");
+        } finally {
+            setIsXaiLoading(null);
+        }
+    };
 
     useEffect(() => {
         const scrollContainer = document.querySelector('main')?.parentElement;
@@ -139,8 +162,7 @@ export function UserAnalysis({ data, onBack }) {
     const getRiskColor = (score) => {
         const s = score * 100;
         if (s <= 15) return 'text-emerald-500';
-        if (s <= 50) return 'text-sky-500';
-        if (s <= 75) return 'text-amber-500';
+        if (s <= 30) return 'text-amber-500';
         return 'text-rose-500';
     };
 
@@ -231,7 +253,23 @@ export function UserAnalysis({ data, onBack }) {
 
                     <GlassCard className="p-8 border-none shadow-xl bg-[#2D3436] text-white flex flex-col items-center justify-center rounded-[2.5rem]">
                         <CircularMeter score={severityScore} size={180} strokeWidth={16} />
-                        <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mt-8">avg intensity level</p>
+                        <div className="mt-8 text-center space-y-1">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-3">risk level status</p>
+                            {severityScore > 0.30 ? (
+                                <div className="bg-rose-500/20 text-rose-400 px-5 py-2 rounded-full border border-rose-500/30 flex items-center justify-center gap-2 animate-pulse shadow-[0_0_15px_rgba(244,63,94,0.3)]">
+                                    <AlertCircle size={16} />
+                                    <span className="font-black text-xs uppercase tracking-widest">Potensi Tinggi</span>
+                                </div>
+                            ) : severityScore > 0.15 ? (
+                                <div className="text-amber-400 font-black text-xs uppercase tracking-widest">
+                                    Moderat
+                                </div>
+                            ) : (
+                                <div className="text-emerald-400 font-black text-xs uppercase tracking-widest">
+                                    Stabil
+                                </div>
+                            )}
+                        </div>
                     </GlassCard>
                 </div>
 
@@ -367,6 +405,22 @@ export function UserAnalysis({ data, onBack }) {
                                                     )}
 
                                                     {tweetImg && <div className="mt-3 rounded-2xl overflow-hidden border border-black/5 shadow-sm bg-slate-100"><img src={tweetImg} alt="" className="w-full h-auto max-h-80 object-cover" /></div>}
+                                                    
+                                                    {/* xAI Button */}
+                                                    <div className="mt-4 pt-4 border-t border-black/5 flex justify-end">
+                                                        <button
+                                                            onClick={() => handleXaiExplain(item)}
+                                                            disabled={isXaiLoading === (item.id || item.text)}
+                                                            className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 bg-[#6C5CE7]/10 text-[#6C5CE7] hover:bg-[#6C5CE7] hover:text-white transition-all border border-[#6C5CE7]/20 shadow-sm"
+                                                        >
+                                                            {isXaiLoading === (item.id || item.text) ? (
+                                                                <span className="animate-spin">⌛</span>
+                                                            ) : (
+                                                                <Sparkles size={12} />
+                                                            )}
+                                                            {isXaiLoading === (item.id || item.text) ? 'analyzing...' : 'xAI Explain'}
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -395,11 +449,28 @@ export function UserAnalysis({ data, onBack }) {
                                     }`}
                                 onClick={() => topic.count > 0 && setSelectedSymptom(topic)}
                             >
-                                <div className="flex justify-between text-[10px] font-black uppercase">
-                                    <span className="text-slate-500">{topic.label}</span>
-                                    <span className={topic.count > 0 ? 'text-[#6C5CE7]' : 'text-slate-300'}>{topic.count} matches</span>
+                                <div className="flex justify-between items-start">
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-[10px] font-black uppercase text-slate-500 leading-none">{topic.label}</span>
+                                        <span className={`text-[9px] font-bold uppercase tracking-widest ${topic.count > 0 ? 'text-[#6C5CE7]' : 'text-slate-300'}`}>{topic.count} matches</span>
+                                    </div>
+                                    
+                                    {topic.count > 0 && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                const worstTweet = detailsData
+                                                    .filter(t => t.matchedLabel === topic.id)
+                                                    .sort((a, b) => (b.score || 0) - (a.score || 0))[0];
+                                                if (worstTweet) handleXaiExplain(worstTweet);
+                                            }}
+                                            className="px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest flex items-center gap-1 bg-[#6C5CE7]/10 text-[#6C5CE7] hover:bg-[#6C5CE7] hover:text-white transition-all border border-[#6C5CE7]/20 shadow-sm"
+                                        >
+                                            <Sparkles size={8} /> xAI
+                                        </button>
+                                    )}
                                 </div>
-                                <div className="h-2 bg-slate-50 rounded-full overflow-hidden border border-black/5">
+                                <div className="h-2 bg-slate-50 rounded-full overflow-hidden border border-black/5 mt-3">
                                     <div className={`h-full transition-all duration-1000 ${topic.count > 0 ? 'bg-[#6C5CE7]' : 'bg-slate-200'}`} style={{ width: `${Math.min(percentage * 10, 100)}%` }} />
                                 </div>
                             </div>
@@ -556,7 +627,7 @@ export function UserAnalysis({ data, onBack }) {
                         <div className="flex items-center gap-3 text-[#74B9FF] font-black uppercase tracking-[0.2em] text-[10px]"><Sparkles size={16} /> ai clinical interpretation</div>
                         <h3 className="text-3xl font-black tracking-tighter leading-tight">
                             {(() => {
-                                if (severityScore > 0.5) {
+                                if (severityScore > 0.30) {
                                     return topIndicator
                                         ? `analisis menunjukkan prevalensi ${topIndicator.label} yang sangat signifikan.`
                                         : "terdeteksi pola emosional yang sangat intens namun tidak spesifik secara klinis.";
@@ -572,7 +643,7 @@ export function UserAnalysis({ data, onBack }) {
                         <p className="text-slate-400 text-base leading-relaxed max-w-3xl font-medium">
                             {(() => {
                                 const tweetCount = detailsData.length;
-                                if (severityScore > 0.5) {
+                                if (severityScore > 0.30) {
                                     return topIndicator
                                         ? `berdasarkan ${tweetCount} aktivitas terakhir, sistem mendeteksi tekanan psikologis yang tinggi. pola bahasa sangat kuat merujuk pada "${topIndicator.label}" dengan penggunaan kata kunci seperti "${topIndicator.keywords.slice(0, 2).join(', ')}". diperlukan perhatian profesional segera.`
                                         : `sistem mendeteksi luapan emosional yang sangat intens dalam bahasa user. meskipun tidak merujuk pada gejala klinis spesifik, frekuensi nada negatif yang tinggi menunjukkan adanya distress berat yang memerlukan observasi lebih lanjut.`;
@@ -596,6 +667,7 @@ export function UserAnalysis({ data, onBack }) {
                     <p className="text-slate-400 text-xs leading-relaxed font-medium">laporan ini dihasilkan secara otomatis oleh sistem kecerdasan buatan. celestx. tidak memberikan diagnosa medis formal. hasil ini harus diverifikasi oleh profesional kesehatan mental berlisensi.</p>
                 </GlassCard>
             </div>
+
 
             {/* SYMPTOM DRILL-DOWN MODAL */}
             {selectedSymptom && (
@@ -630,7 +702,7 @@ export function UserAnalysis({ data, onBack }) {
                         {/* Modal Content - List of Tweets */}
                         <div className="flex-1 overflow-y-auto p-10 bg-slate-50/30 space-y-6">
                             {detailsData
-                                .filter(t => t.matchedLabel === selectedSymptom.id)
+                                .filter(t => selectedSymptom.id === 'ALL' || t.matchedLabel === selectedSymptom.id)
                                 .map((item, idx) => {
                                     const text = item.text || "";
                                     const tweetImg = item.imageUrl || item.mediaUrl;
@@ -682,6 +754,22 @@ export function UserAnalysis({ data, onBack }) {
                                                         <img src={tweetImg} alt="" className="w-full h-auto" />
                                                     </div>
                                                 )}
+                                                
+                                                {/* xAI Button */}
+                                                <div className="mt-3 pt-3 border-t border-black/5 flex justify-start">
+                                                    <button
+                                                        onClick={() => handleXaiExplain(item)}
+                                                        disabled={isXaiLoading === (item.id || item.text)}
+                                                        className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 bg-[#6C5CE7]/10 text-[#6C5CE7] hover:bg-[#6C5CE7] hover:text-white transition-all border border-[#6C5CE7]/20 shadow-sm"
+                                                    >
+                                                        {isXaiLoading === (item.id || item.text) ? (
+                                                            <span className="animate-spin">⌛</span>
+                                                        ) : (
+                                                            <Sparkles size={10} />
+                                                        )}
+                                                        {isXaiLoading === (item.id || item.text) ? 'analyzing...' : 'xAI Explain'}
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     );
@@ -696,6 +784,9 @@ export function UserAnalysis({ data, onBack }) {
                     </motion.div>
                 </div>
             )}
+            
+            {/* xAI Modal */}
+            <XaiModal xaiData={xaiData} setXaiData={setXaiData} />
         </div>
     );
 }

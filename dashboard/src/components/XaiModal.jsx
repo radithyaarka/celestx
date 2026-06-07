@@ -74,6 +74,17 @@ export function XaiModal({ xaiData, setXaiData }) {
                             </div>
                         </div>
 
+                        {/* Multimodal Image Preview */}
+                        {(xaiData.originalTweet?.imageUrl || xaiData.originalTweet?.mediaUrl) && (
+                            <div className="mb-6 rounded-2xl overflow-hidden border border-black/5 bg-slate-50 shadow-inner max-h-64 flex justify-center">
+                                <img 
+                                    src={xaiData.originalTweet?.imageUrl || xaiData.originalTweet?.mediaUrl} 
+                                    alt="Multimodal Analysis" 
+                                    className="max-h-64 w-auto object-contain"
+                                />
+                            </div>
+                        )}
+
                         {/* The Text Analysis */}
                         <div className="text-2xl leading-relaxed text-[#2D3436] flex flex-wrap gap-x-2 gap-y-3 font-medium">
                             {xaiData.explanation.map((item, idx) => {

@@ -66,13 +66,16 @@ export function Users({ onSelectUser }) {
 
                         // 3. Predict via Backend
                         try {
-                            const tweetTexts = response.tweets.map(t => t.text);
+                            const tweetData = response.tweets.map(t => ({
+                                text: t.text,
+                                imageUrl: t.imageUrl || t.mediaUrl || null
+                            }));
                             const threshold = (settings.confidenceThreshold || 15) / 100;
                             const res = await fetch("http://localhost:8000/predict-user", {
                                 method: "POST",
                                 headers: { "Content-Type": "application/json" },
                                 body: JSON.stringify({ 
-                                    tweets: tweetTexts,
+                                    tweets: tweetData,
                                     threshold: threshold
                                 }),
                             });
@@ -121,8 +124,7 @@ export function Users({ onSelectUser }) {
   const getRiskColor = (score) => {
     const s = score * 100;
     if (s <= 15) return 'text-emerald-500';
-    if (s <= 50) return 'text-sky-500';
-    if (s <= 75) return 'text-amber-500';
+    if (s <= 30) return 'text-amber-500';
     return 'text-rose-500';
   };
 
@@ -270,8 +272,7 @@ export function Users({ onSelectUser }) {
                                 <div 
                                     className={`h-full transition-all duration-[1500ms] ${
                                         currentScore <= 0.15 ? 'bg-emerald-500' : 
-                                        currentScore <= 0.50 ? 'bg-sky-500' : 
-                                        currentScore <= 0.75 ? 'bg-amber-500' : 'bg-rose-500'
+                                        currentScore <= 0.30 ? 'bg-amber-500' : 'bg-rose-500'
                                     }`} 
                                     style={{ width: `${currentScore * 100}%` }} 
                                 />

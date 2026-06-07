@@ -35,6 +35,7 @@ export function Dashboard({ onNavigate }) {
   const [idScanned, setIdScanned] = useState(0);
   const [scanning, setScanning] = useState(false);
   const [backendStatus, setBackendStatus] = useState('checking');
+  const [backendModel, setBackendModel] = useState(null);
 
   const refreshData = useCallback(() => {
     if (window.chrome && chrome.storage) {
@@ -73,12 +74,24 @@ export function Dashboard({ onNavigate }) {
     const checkBackend = async () => {
       try {
         const res = await fetch('http://localhost:8000/health', { signal: AbortSignal.timeout(3000) });
-        setBackendStatus(res.ok ? 'online' : 'offline');
+        if (res.ok) {
+          setBackendStatus('online');
+          try {
+            const data = await res.json();
+            // Extract short model label from health response
+            if (data.model) {
+              const isMultimodal = data.model.toLowerCase().includes('multimodal');
+              setBackendModel(isMultimodal ? 'multimodal' : 'text-only');
+            }
+          } catch {}
+        } else {
+          setBackendStatus('offline');
+        }
       } catch {
         try {
           await fetch('http://localhost:8000/', { signal: AbortSignal.timeout(3000) });
           setBackendStatus('online');
-        } catch { setBackendStatus('offline'); }
+        } catch { setBackendStatus('offline'); setBackendModel(null); }
       }
     };
     checkBackend();
@@ -99,8 +112,7 @@ export function Dashboard({ onNavigate }) {
   const getRiskColor = (score) => {
     const s = score * 100;
     if (s <= 15) return 'text-emerald-500';
-    if (s <= 50) return 'text-sky-500';
-    if (s <= 75) return 'text-amber-500';
+    if (s <= 30) return 'text-amber-500';
     return 'text-rose-500';
   };
 
@@ -295,13 +307,32 @@ export function Dashboard({ onNavigate }) {
           </div>
 
           {/* System Status Tiles */}
-          <div className="grid grid-cols-2 gap-3 shrink-0">
-            <div className={`px-4 py-3 rounded-2xl border text-[9px] font-black uppercase tracking-widest flex flex-col items-center justify-center text-center gap-1.5 ${backendStatus === 'online' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-rose-50 border-rose-100 text-rose-600'}`}>
+          <div className="grid grid-cols-3 gap-3 shrink-0">
+            <div className={`px-3 py-3 rounded-2xl border text-[9px] font-black uppercase tracking-widest flex flex-col items-center justify-center text-center gap-1.5 ${backendStatus === 'online' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-rose-50 border-rose-100 text-rose-600'}`}>
               <span className="opacity-70">api server</span>
               <span className="flex items-center gap-1.5"><div className={`w-2 h-2 rounded-full ${backendStatus === 'online' ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} /> {backendStatus}</span>
             </div>
-            <div className="px-4 py-3 rounded-2xl border bg-blue-50 border-blue-100 text-blue-600 text-[9px] font-black uppercase tracking-widest flex flex-col items-center justify-center text-center gap-1.5">
-              <span className="opacity-70">auto-monitor</span>
+
+            {/* Model Badge */}
+            <div className={`px-3 py-3 rounded-2xl border text-[9px] font-black uppercase tracking-widest flex flex-col items-center justify-center text-center gap-1.5 ${
+              backendModel === 'multimodal'
+                ? 'bg-violet-50 border-violet-200 text-violet-600'
+                : backendModel === 'text-only'
+                ? 'bg-sky-50 border-sky-100 text-sky-600'
+                : 'bg-slate-50 border-slate-100 text-slate-400'
+            }`}>
+              <span className="opacity-70">model</span>
+              <span className="flex items-center gap-1.5">
+                <div className={`w-2 h-2 rounded-full ${
+                  backendModel === 'multimodal' ? 'bg-violet-500 animate-pulse' :
+                  backendModel === 'text-only' ? 'bg-sky-500' : 'bg-slate-300'
+                }`} />
+                {backendModel || '—'}
+              </span>
+            </div>
+
+            <div className="px-3 py-3 rounded-2xl border bg-blue-50 border-blue-100 text-blue-600 text-[9px] font-black uppercase tracking-widest flex flex-col items-center justify-center text-center gap-1.5">
+              <span className="opacity-70">monitor</span>
               <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" /> active</span>
             </div>
           </div>

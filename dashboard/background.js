@@ -54,11 +54,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             chrome.storage.local.set({ global_seen_tweets: Array.from(seenSet).slice(-1000) });
 
             try {
-                const tweetTexts = novelTweets.map(t => t.text);
+                const tweetData = novelTweets.map(t => ({
+                    text: t.text,
+                    imageUrl: t.imageUrl || t.mediaUrl || null
+                }));
                 const res = await fetch(`${backendUrl}/predict-user`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ tweets: tweetTexts })
+                    body: JSON.stringify({ tweets: tweetData })
                 });
                 const result = await res.json();
 
@@ -81,6 +84,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                         handle: originalTweet?.handle,
                         avatarUrl: originalTweet?.avatarUrl,
                         images: originalTweet?.images || [],
+                        imageUrl: originalTweet?.imageUrl || originalTweet?.mediaUrl || null,
+                        mediaUrl: originalTweet?.mediaUrl || originalTweet?.imageUrl || null,
                         date: originalTweet?.timestamp || new Date().toISOString()
                     };
                 }); // Removed the filter here so it represents ALL languages

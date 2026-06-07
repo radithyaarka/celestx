@@ -333,7 +333,8 @@ function extractTweets() {
       if (dt) tweetData.timestamp = dt;
     }
 
-    const imageEls = article.querySelectorAll('div[data-testid="tweetPhoto"] img');
+    // More aggressive image matching for Twitter
+    const imageEls = article.querySelectorAll('div[data-testid="tweetPhoto"] img, img[src*="twimg.com/media"]');
     if (imageEls.length > 0) {
       const urls = Array.from(imageEls).map(img => img.src);
       tweetData.images = urls;

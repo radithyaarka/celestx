@@ -87,11 +87,9 @@ export function History({ onNavigate, onScanComplete }) {
 
   const getRiskColor = (score) => {
     const s = score * 100;
-    const thresh = settings.confidenceThreshold || 15;
-    if (s > 75) return 'text-rose-500';
-    if (s > 50) return 'text-amber-500';
-    if (s > thresh) return 'text-[#6C5CE7]';
-    return 'text-emerald-500';
+    if (s <= 15) return 'text-emerald-500';
+    if (s <= 30) return 'text-amber-500';
+    return 'text-rose-500';
   };
 
   // Dipanggil setelah user konfirmasi di modal
@@ -113,12 +111,15 @@ export function History({ onNavigate, onScanComplete }) {
                   setDeepScanTarget(null);
                   return;
                 }
-                const tweetTexts = response.tweets.map(t => t.text);
+                const tweetData = response.tweets.map(t => ({
+                  text: t.text,
+                  imageUrl: t.imageUrl || t.mediaUrl || null
+                }));
                 const threshold = (settings?.confidenceThreshold || 15) / 100;
                 const res = await fetch('http://localhost:8000/predict-user', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ tweets: tweetTexts, threshold }),
+                  body: JSON.stringify({ tweets: tweetData, threshold }),
                 });
                 const result = await res.json();
                 const scanData = {
@@ -150,12 +151,12 @@ export function History({ onNavigate, onScanComplete }) {
     }
   };
 
-  const highRisks = history.filter(h => h.confidence > 0.75).length;
+  const highRisks = history.filter(h => h.confidence > 0.30).length;
   const avgScore = history.length > 0 
     ? (history.reduce((a, b) => a + b.confidence, 0) / history.length * 100).toFixed(0) 
     : 0;
 
-  const displayedHistory = filterCritical ? history.filter(h => h.confidence > 0.75) : history;
+  const displayedHistory = filterCritical ? history.filter(h => h.confidence > 0.30) : history;
 
   return (
     <div className="max-w-7xl mx-auto space-y-12 pb-20 lowercase relative px-4">
@@ -199,7 +200,7 @@ export function History({ onNavigate, onScanComplete }) {
                 <div className="relative group/info">
                   <Info size={12} className={filterCritical ? 'text-rose-400' : 'text-slate-300'} />
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-[#2D3436] text-white text-[10px] font-medium leading-relaxed rounded-xl opacity-0 group-hover/info:opacity-100 transition-all pointer-events-none z-[100] shadow-2xl border border-white/10 text-center normal-case">
-                    Aktivitas dengan intensitas deteksi di atas 75%.
+                    Aktivitas dengan intensitas deteksi di atas 30% (Potensi Tinggi).
                   </div>
                 </div>
               </div>
@@ -243,7 +244,7 @@ export function History({ onNavigate, onScanComplete }) {
                 <ShieldAlert size={32} className="text-rose-200" />
             </div>
             <p className="text-rose-400 font-black text-lg tracking-tight uppercase tracking-widest">no critical alerts.</p>
-            <p className="text-rose-300 text-sm mt-2">tidak ada aktivitas dengan intensitas di atas 75%.</p>
+            <p className="text-rose-300 text-sm mt-2">tidak ada aktivitas dengan intensitas di atas 30%.</p>
           </div>
         ) : (
           displayedHistory.map((item, idx) => (
