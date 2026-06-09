@@ -41,7 +41,7 @@ celestx/
 
 ### 🔍 archive vault (history)
 *   **intelligence database**: a secured record of all identified risks, organized by confidence and timestamp.
-*   **explainable ai (xai) integration**: dedicated transparency modules allowing clinical experts to see exactly *which* words or linguistic patterns triggered the neural network's decision, ensuring clinical trust and avoiding "black-box" diagnosis.
+*   **explainable ai (xai) integration**: dual-modal transparency engines to avoid "black-box" diagnosis. utilizes **shap (shapley additive explanations)** to highlight triggering text tokens, and **vit attention maps** to highlight depressive visual elements in images.
 *   **drill-down analysis**: click on any clinical category to view specific tweet evidence in a dedicated modal.
 
 ### 📊 insights hub (clinical analytics)
@@ -81,6 +81,11 @@ by design, the machine learning architecture is optimized for **high recall (sen
 
 ### 💡 rule-based interventions & comorbidity
 the analysis engine doesn't just stop at detection; it provides **dynamic, rule-based psychological recommendations**. if multiple symptoms trigger simultaneously, the ai recognizes it as **symptom comorbidity** and automatically shifts the recommendation from targeted advice to a holistic intervention alert.
+
+### 📋 clinical & user validation
+the system architecture and output have been rigorously evaluated through two primary testing phases:
+*   **expert validation (validasi pakar)**: tested alongside certified psychologists and psychiatrists to ensure clinical safety, correct dsm-5 mapping, and responsible thresholding.
+*   **user acceptance testing (uat)**: evaluated by university students for usability, interface clarity, and efficacy as a digital wellness monitor.
 
 ---
 
