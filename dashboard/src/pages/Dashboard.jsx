@@ -111,8 +111,8 @@ export function Dashboard({ onNavigate }) {
 
   const getRiskColor = (score) => {
     const s = score * 100;
-    if (s <= 15) return 'text-emerald-500';
-    if (s <= 30) return 'text-amber-500';
+    if (s <= 25) return 'text-emerald-500';
+    if (s <= 50) return 'text-amber-500';
     return 'text-rose-500';
   };
 

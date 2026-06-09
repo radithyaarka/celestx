@@ -306,13 +306,17 @@ async def predict_batch(input_data: BatchTweetInput):
     top_k_scores = sorted(all_scores, reverse=True)[:K]
     avg_score = sum(top_k_scores) / len(top_k_scores) if top_k_scores else 0
 
-    if avg_score > 0.30: status_label = "POTENSI TINGGI"
-    elif avg_score > 0.15: status_label = "MODERAT"
+    # Menghitung rasio indikasi depresi sesuai metodologi Buku TA
+    indicated_ratio = indicated_count / len(input_data.tweets) if input_data.tweets else 0
+
+    if indicated_ratio > 0.30: status_label = "POTENSI TINGGI"
+    elif indicated_ratio > 0.15: status_label = "MODERAT"
     else: status_label = "STABIL"
 
     return {
         "total_tweets": len(input_data.tweets),
         "indicated_tweets": indicated_count,
+        "indicated_ratio": round(float(indicated_ratio), 4),
         "average_risk_score": round(float(avg_score), 4),
         "status": status_label,
         "details": details,

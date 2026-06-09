@@ -225,6 +225,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         let profileInfo = extractProfileInfo();
         let scrapedTweetsMap = new Map();
         let scrollCount = 0;
+        let noNewTweetsCounter = 0;
+        let previousTweetCount = 0;
         
         const extract = () => {
             const tweets = extractTweets();
@@ -244,16 +246,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             } else {
                 window.scrollBy(0, 1000);
             }
-            setTimeout(extract, 500);
-            scrollCount++;
             
-            if (scrollCount >= maxScrolls || scrapedTweetsMap.size >= targetDepth) {
-                clearInterval(scrollInterval);
-                sendResponse({ 
-                    profile: profileInfo,
-                    tweets: Array.from(scrapedTweetsMap.values()).slice(0, targetDepth) 
-                });
-            }
+            setTimeout(() => {
+                extract();
+                scrollCount++;
+                
+                if (scrapedTweetsMap.size === previousTweetCount) {
+                    noNewTweetsCounter++;
+                } else {
+                    noNewTweetsCounter = 0;
+                }
+                previousTweetCount = scrapedTweetsMap.size;
+                
+                const isStuckAtBottom = noNewTweetsCounter >= 3;
+                
+                if (scrollCount >= maxScrolls || scrapedTweetsMap.size >= targetDepth || isStuckAtBottom) {
+                    clearInterval(scrollInterval);
+                    sendResponse({ 
+                        profile: profileInfo,
+                        tweets: Array.from(scrapedTweetsMap.values()).slice(0, targetDepth) 
+                    });
+                }
+            }, 500);
         }, 1500);
     });
     

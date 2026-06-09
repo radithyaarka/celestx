@@ -15,7 +15,9 @@ export function UserAnalysis({ data, onBack }) {
     const [langFilter, setLangFilter] = useState('id'); // 'id' or 'all'
     const [sortBy, setSortBy] = useState('latest'); // 'latest' or 'intensity'
     const [selectedSymptom, setSelectedSymptom] = useState(null);
-    
+    const [use14DayWindow, setUse14DayWindow] = useState(false);
+    const [showIndicatedOnly, setShowIndicatedOnly] = useState(false);
+
     // xAI State
     const [xaiData, setXaiData] = useState(null);
     const [isXaiLoading, setIsXaiLoading] = useState(null);
@@ -85,10 +87,36 @@ export function UserAnalysis({ data, onBack }) {
 
     const userData = data.user || {};
     const summaryData = data.summary || {};
-    const detailsData = Array.isArray(data.details) ? data.details : [];
+    const rawDetailsData = Array.isArray(data.details) ? data.details : [];
 
-    // Dynamic Risk Score calculation based on language filter (Denominator = Total Scanned Tweets)
-    const dynamicSeverityScore = useMemo(() => {
+    // Jendela 14 Hari DSM-5 Logic
+    const detailsData = useMemo(() => {
+        if (!use14DayWindow || rawDetailsData.length === 0) return rawDetailsData;
+
+        // Find most recent tweet date in the dataset
+        const getTs = (d) => new Date(d.date || d.timestamp || d.created_at || d.time || 0).getTime();
+        const validTimestamps = rawDetailsData.map(getTs).filter(ts => !isNaN(ts) && ts > 0);
+
+        if (validTimestamps.length === 0) return rawDetailsData; // Fallback if dates are invalid
+
+        const maxTs = Math.max(...validTimestamps);
+
+        // 14 days in milliseconds
+        const thresholdTs = maxTs - (14 * 24 * 60 * 60 * 1000);
+
+        return rawDetailsData.filter(d => getTs(d) >= thresholdTs);
+    }, [rawDetailsData, use14DayWindow]);
+
+    const indicatedRatio = useMemo(() => {
+        if (!detailsData || detailsData.length === 0) return 0;
+        const idTweets = detailsData.filter(t => detectLanguage(t.text) === 'id');
+        if (idTweets.length === 0) return 0;
+        const indicatedCount = idTweets.filter(t => (Number(t.score) || 0) >= 0.15).length;
+        return indicatedCount / idTweets.length;
+    }, [detailsData]);
+
+    // AI Certainty / Linguistic Intensity (Hybrid Risk Model - Global + Peak)
+    const aiCertaintyScore = useMemo(() => {
         const idTweets = detailsData.filter(t => detectLanguage(t.text) === 'id');
         if (idTweets.length === 0) return 0;
 
@@ -105,9 +133,7 @@ export function UserAnalysis({ data, onBack }) {
 
         // 3. Hybrid Result
         return (globalAvg + peakAvg) / 2;
-    }, [detailsData]); // Hybrid Risk Model (Global + Peak)
-
-    const severityScore = dynamicSeverityScore;
+    }, [detailsData]);
     const userAvatar = userData.avatarUrl || userData.profile_image_url || userData.profileImageUrl;
 
     const clinicalProfile = useMemo(() => {
@@ -117,7 +143,7 @@ export function UserAnalysis({ data, onBack }) {
             if (detectLanguage(tweet.text) === 'en') return;
 
             const text = (tweet.text || "").toLowerCase();
-            const isIndicated = tweet.label === 'INDICATED' || (Number(tweet.score || tweet.confidence) > 0.5);
+            const isIndicated = ((Number(tweet.score) || 0) >= 0.15);
 
             // Only search for symptoms if the AI actually indicates risk
             if (isIndicated) {
@@ -182,8 +208,15 @@ export function UserAnalysis({ data, onBack }) {
             const lang = detectLanguage(text);
             if (langFilter === 'id' && lang === 'en') return false;
 
-            if (filter === 'original') return !isRetweet;
-            if (filter === 'retweets') return isRetweet;
+            if (filter === 'original' && isRetweet) return false;
+            if (filter === 'retweets' && !isRetweet) return false;
+
+            if (showIndicatedOnly) {
+                if (lang === 'en') return false;
+                const score = Number(item?.score) || 0;
+                if (score < 0.15) return false;
+            }
+
             return true;
         })
         .sort((a, b) => {
@@ -209,6 +242,12 @@ export function UserAnalysis({ data, onBack }) {
                 </div>
                 <div className="flex items-center gap-3">
                     <button
+                        onClick={() => setUse14DayWindow(!use14DayWindow)}
+                        className={`flex items-center gap-2 px-5 py-3 rounded-xl border transition-all font-black text-[10px] uppercase tracking-widest shadow-sm ${use14DayWindow ? 'bg-[#6C5CE7] text-white border-[#6C5CE7]' : 'bg-white hover:bg-slate-50 text-slate-400 border-black/5'}`}
+                    >
+                        <Calendar size={16} /> 14-day dsm-5 window {use14DayWindow ? '(ON)' : '(OFF)'}
+                    </button>
+                    <button
                         onClick={handleDeleteScan}
                         className="flex items-center gap-2 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white px-5 py-3 rounded-xl border border-rose-500/10 transition-all font-black text-[10px] uppercase tracking-widest"
                     >
@@ -220,6 +259,16 @@ export function UserAnalysis({ data, onBack }) {
                     </div>
                 </div>
             </div>
+
+            {use14DayWindow && detailsData.length < 10 && (
+                <div className="w-full bg-amber-500/10 border border-amber-500/20 text-amber-600 p-4 rounded-2xl flex items-start gap-3">
+                    <AlertCircle size={20} className="shrink-0 mt-0.5" />
+                    <div>
+                        <p className="font-black text-xs uppercase tracking-widest mb-1">Peringatan: Data 14 Hari Tidak Memadai</p>
+                        <p className="text-sm font-medium opacity-80">Hanya ditemukan {detailsData.length} aktivitas dalam rentang waktu 14 hari terakhir. Hasil rasio (persentase) mungkin tidak akurat secara statistik. Pertimbangkan untuk mematikan mode DSM-5 Window untuk melihat analisis historis keseluruhan.</p>
+                    </div>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                 <div className="lg:col-span-4 space-y-8 lg:sticky lg:top-8">
@@ -245,22 +294,22 @@ export function UserAnalysis({ data, onBack }) {
                             <div className="bg-slate-50 p-4 rounded-2xl border border-black/5">
                                 <p className="text-[9px] font-black text-[#6C5CE7] uppercase tracking-widest mb-1.5 leading-none">terindikasi</p>
                                 <p className="text-xl font-black text-rose-500">
-                                    {detailsData.filter(d => d.label === 'INDICATED').length}
+                                    {detailsData.filter(d => detectLanguage(d.text) === 'id' && (Number(d.score) || 0) >= 0.15).length}
                                 </p>
                             </div>
                         </div>
                     </GlassCard>
 
                     <GlassCard className="p-8 border-none shadow-xl bg-[#2D3436] text-white flex flex-col items-center justify-center rounded-[2.5rem]">
-                        <CircularMeter score={severityScore} size={180} strokeWidth={16} />
+                        <CircularMeter score={indicatedRatio} size={180} strokeWidth={16} />
                         <div className="mt-8 text-center space-y-1">
                             <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-3">risk level status</p>
-                            {severityScore > 0.30 ? (
+                            {indicatedRatio > 0.30 ? (
                                 <div className="bg-rose-500/20 text-rose-400 px-5 py-2 rounded-full border border-rose-500/30 flex items-center justify-center gap-2 animate-pulse shadow-[0_0_15px_rgba(244,63,94,0.3)]">
                                     <AlertCircle size={16} />
                                     <span className="font-black text-xs uppercase tracking-widest">Potensi Tinggi</span>
                                 </div>
-                            ) : severityScore > 0.15 ? (
+                            ) : indicatedRatio > 0.15 ? (
                                 <div className="text-amber-400 font-black text-xs uppercase tracking-widest">
                                     Moderat
                                 </div>
@@ -288,6 +337,16 @@ export function UserAnalysis({ data, onBack }) {
                                             <button key={type} onClick={() => setFilter(type)} className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${filter === type ? 'bg-white text-[#6C5CE7] shadow-sm' : 'text-slate-400 hover:text-slate-500'}`}>{type}</button>
                                         ))}
                                     </div>
+
+                                    <div className="w-px h-4 bg-slate-200 hidden md:block" />
+
+                                    {/* Indicated Only Toggle */}
+                                    <button
+                                        onClick={() => setShowIndicatedOnly(!showIndicatedOnly)}
+                                        className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border flex items-center gap-1.5 ${showIndicatedOnly ? 'bg-rose-500 text-white border-rose-500 shadow-sm' : 'bg-rose-50 text-rose-400 border-rose-100 hover:bg-rose-100'}`}
+                                    >
+                                        <AlertCircle size={10} /> indicated
+                                    </button>
 
                                     <div className="w-px h-4 bg-slate-200 hidden md:block" />
 
@@ -337,8 +396,8 @@ export function UserAnalysis({ data, onBack }) {
                                     const isEnglish = detectLanguage(text) === 'en';
                                     return (
                                         <div key={idx} className={`p-6 rounded-[2rem] border transition-all group relative overflow-hidden ${isEnglish
-                                                ? 'bg-[#F3F0FF] border-[#6C5CE7]/30 shadow-md scale-[0.98]'
-                                                : 'bg-white border-black/5 hover:border-[#6C5CE7]/20 shadow-sm'
+                                            ? 'bg-[#F3F0FF] border-[#6C5CE7]/30 shadow-md scale-[0.98]'
+                                            : 'bg-white border-black/5 hover:border-[#6C5CE7]/20 shadow-sm'
                                             }`}>
                                             <div className="flex gap-4">
                                                 <div className="shrink-0">
@@ -368,8 +427,8 @@ export function UserAnalysis({ data, onBack }) {
                                                                 {isEnglish ? 'language' : 'evidence strength'}
                                                             </p>
                                                             <p className={`text-[9px] font-black px-3 py-1 rounded-lg transition-all ${isEnglish
-                                                                    ? 'text-[#5849D4] bg-[#6C5CE7]/10 border border-[#6C5CE7]/20'
-                                                                    : getRiskColor(item?.score || 0)
+                                                                ? 'text-[#5849D4] bg-[#6C5CE7]/10 border border-[#6C5CE7]/20'
+                                                                : getRiskColor(item?.score || 0)
                                                                 }`}>
                                                                 {isEnglish ? 'EXTERNAL LANGUAGE - NO SCORE' : `${((item?.score || 0) * 100).toFixed(0)}%`}
                                                             </p>
@@ -405,7 +464,7 @@ export function UserAnalysis({ data, onBack }) {
                                                     )}
 
                                                     {tweetImg && <div className="mt-3 rounded-2xl overflow-hidden border border-black/5 shadow-sm bg-slate-100"><img src={tweetImg} alt="" className="w-full h-auto max-h-80 object-cover" /></div>}
-                                                    
+
                                                     {/* xAI Button */}
                                                     <div className="mt-4 pt-4 border-t border-black/5 flex justify-end">
                                                         <button
@@ -444,8 +503,8 @@ export function UserAnalysis({ data, onBack }) {
                             <div
                                 key={topic.id}
                                 className={`p-4 rounded-2xl transition-all duration-300 ${topic.count > 0
-                                        ? 'cursor-pointer hover:bg-[#6C5CE7]/5 hover:shadow-md hover:scale-[1.02] border border-transparent hover:border-[#6C5CE7]/20'
-                                        : 'opacity-40'
+                                    ? 'cursor-pointer hover:bg-[#6C5CE7]/5 hover:shadow-md hover:scale-[1.02] border border-transparent hover:border-[#6C5CE7]/20'
+                                    : 'opacity-40'
                                     }`}
                                 onClick={() => topic.count > 0 && setSelectedSymptom(topic)}
                             >
@@ -454,7 +513,7 @@ export function UserAnalysis({ data, onBack }) {
                                         <span className="text-[10px] font-black uppercase text-slate-500 leading-none">{topic.label}</span>
                                         <span className={`text-[9px] font-bold uppercase tracking-widest ${topic.count > 0 ? 'text-[#6C5CE7]' : 'text-slate-300'}`}>{topic.count} matches</span>
                                     </div>
-                                    
+
                                     {topic.count > 0 && (
                                         <button
                                             onClick={(e) => {
@@ -504,7 +563,7 @@ export function UserAnalysis({ data, onBack }) {
                             <div className="text-center">
                                 <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1">trend focus</p>
                                 <p className="text-xl font-black text-white/80 uppercase">
-                                    {topIndicator ? topIndicator.label : (severityScore > 0.05 ? "UNSPECIFIED DISTRESS" : "STABLE / NORMAL")}
+                                    {topIndicator ? topIndicator.label : (aiCertaintyScore > 0.05 ? "UNSPECIFIED DISTRESS" : "STABLE / NORMAL")}
                                 </p>
                             </div>
                         </div>
@@ -542,7 +601,7 @@ export function UserAnalysis({ data, onBack }) {
                                 : sortedPosts;
 
                             const points = sampled.map(d => d.score || 0);
-                            const avgY = 200 - (severityScore * 180);
+                            const avgY = 200 - (aiCertaintyScore * 180);
 
                             return (
                                 <>
@@ -627,37 +686,67 @@ export function UserAnalysis({ data, onBack }) {
                         <div className="flex items-center gap-3 text-[#74B9FF] font-black uppercase tracking-[0.2em] text-[10px]"><Sparkles size={16} /> ai clinical interpretation</div>
                         <h3 className="text-3xl font-black tracking-tighter leading-tight">
                             {(() => {
-                                if (severityScore > 0.30) {
+                                if (indicatedRatio > 0.30) {
                                     return topIndicator
                                         ? `analisis menunjukkan prevalensi ${topIndicator.label} yang sangat signifikan.`
-                                        : "terdeteksi pola emosional yang sangat intens namun tidak spesifik secara klinis.";
-                                } else if (severityScore > 0.15) {
+                                        : "terdeteksi frekuensi emosional yang sangat tinggi namun tidak spesifik secara klinis.";
+                                } else if (indicatedRatio > 0.15) {
                                     return topIndicator
-                                        ? `terdeteksi indikasi ${topIndicator.label} dalam intensitas sedang.`
+                                        ? `terdeteksi indikasi ${topIndicator.label} dalam frekuensi sedang.`
                                         : "terdeteksi fluktuasi emosional ringan yang bersifat umum.";
                                 } else {
                                     return "analisis menunjukkan kondisi linguistik yang stabil dan rendah risiko.";
                                 }
                             })()}
                         </h3>
-                        <p className="text-slate-400 text-base leading-relaxed max-w-3xl font-medium">
-                            {(() => {
-                                const tweetCount = detailsData.length;
-                                if (severityScore > 0.30) {
-                                    return topIndicator
-                                        ? `berdasarkan ${tweetCount} aktivitas terakhir, sistem mendeteksi tekanan psikologis yang tinggi. pola bahasa sangat kuat merujuk pada "${topIndicator.label}" dengan penggunaan kata kunci seperti "${topIndicator.keywords.slice(0, 2).join(', ')}". diperlukan perhatian profesional segera.`
-                                        : `sistem mendeteksi luapan emosional yang sangat intens dalam bahasa user. meskipun tidak merujuk pada gejala klinis spesifik, frekuensi nada negatif yang tinggi menunjukkan adanya distress berat yang memerlukan observasi lebih lanjut.`;
-                                } else if (severityScore > 0.15) {
-                                    return topIndicator
-                                        ? `dalam ${tweetCount} aktivitas terakhir, terdapat indikasi gejala "${topIndicator.label}" yang muncul secara sporadis. intensitas risiko berada pada level moderat, menunjukkan adanya tekanan psikologis awal yang perlu dipantau.`
-                                        : `terdapat pola bahasa yang menunjukkan keresahan emosional umum dalam intensitas sedang. tidak ditemukan bukti klinis yang spesifik, namun fluktuasi ini mencerminkan kondisi psikologis yang sedang kurang stabil.`;
-                                } else {
-                                    return `berdasarkan pola linguistik dalam ${tweetCount} aktivitas terakhir, sistem tidak mendeteksi adanya indikator klinis yang menonjol. penggunaan bahasa cenderung netral, positif, dan tidak menunjukkan tekanan psikologis yang signifikan menurut kriteria DSM-5.`;
-                                }
-                            })()}
-                        </p>
+                        <div className="space-y-4">
+                            <p className="text-slate-400 text-base leading-relaxed font-medium">
+                                {(() => {
+                                    const tweetCount = detailsData.length;
+                                    if (indicatedRatio > 0.30) {
+                                        return topIndicator
+                                            ? `berdasarkan ${tweetCount} aktivitas terakhir, rasio depresi mencapai titik kritis (>30%). pola bahasa sangat kuat merujuk pada "${topIndicator.label}" dengan penggunaan kata kunci seperti "${topIndicator.keywords.slice(0, 2).join(', ')}". diperlukan perhatian profesional segera.`
+                                            : `sistem mendeteksi luapan emosional yang sangat intens dalam persentase cuitan user. meskipun tidak merujuk pada gejala klinis spesifik, frekuensi nada negatif yang tinggi menunjukkan adanya distress berat yang memerlukan observasi lebih lanjut.`;
+                                    } else if (indicatedRatio > 0.15) {
+                                        return topIndicator
+                                            ? `dalam ${tweetCount} aktivitas terakhir, terdapat indikasi gejala "${topIndicator.label}" yang muncul secara sporadis dalam persentase moderat. intensitas risiko menunjukkan adanya tekanan psikologis awal yang perlu dipantau.`
+                                            : `terdapat proporsi pola bahasa yang menunjukkan keresahan emosional umum. tidak ditemukan bukti klinis yang spesifik, namun fluktuasi ini mencerminkan kondisi psikologis yang sedang kurang stabil.`;
+                                    } else {
+                                        return `berdasarkan pola linguistik dalam ${tweetCount} aktivitas terakhir, sistem tidak mendeteksi rasio indikator klinis yang menonjol (<15%). penggunaan bahasa cenderung netral, positif, dan tidak menunjukkan tekanan psikologis yang signifikan menurut kriteria DSM-5.`;
+                                    }
+                                })()}
+                            </p>
+
+                            {/* Clinical Recommendation Block */}
+                            {indicatedRatio > 0.15 && (
+                                <div className="mt-6 bg-[#6C5CE7]/10 border border-[#6C5CE7]/20 p-5 rounded-2xl">
+                                    <div className="flex items-center gap-2 text-[#74B9FF] font-black uppercase tracking-[0.1em] text-[10px] mb-2">
+                                        <Info size={14} /> rekomendasi intervensi dasar
+                                    </div>
+                                    <p className="text-white/90 text-sm font-medium leading-relaxed">
+                                        {(() => {
+                                            const activeSymptoms = clinicalProfile.filter(s => s.count > 0);
+
+                                            if (activeSymptoms.length === 0) {
+                                                return "Terdapat indikasi tekanan emosional yang kuat, meskipun belum mengarah pada satu gejala spesifik. Pantau aktivitas pengguna secara berkala dan berikan ruang aman untuk bercerita tanpa menghakimi.";
+                                            } else if (activeSymptoms.length === 1) {
+                                                return activeSymptoms[0].advice;
+                                            } else {
+                                                const top1 = activeSymptoms[0];
+                                                const top2 = activeSymptoms[1];
+
+                                                if (top1.count === top2.count || activeSymptoms.length >= 3) {
+                                                    return `Terdeteksi tumpukan beberapa gejala sekaligus (seperti ${top1.label} dan ${top2.label}). Penanganan menyeluruh sangat diperlukan; utamakan keselamatan pengguna dan sangat disarankan untuk segera mencari bantuan psikolog profesional.`;
+                                                } else {
+                                                    return `Fokus utama penanganan pada indikasi ${top1.label}: ${top1.advice} Sebagai langkah pendukung untuk indikasi ${top2.label}: ${top2.advice}`;
+                                                }
+                                            }
+                                        })()}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
                         <div className="pt-4 flex flex-wrap gap-4">
-                            <button onClick={() => { }} className="bg-[#6C5CE7] hover:bg-[#5b4bc4] text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2"><Download size={16} /> download technical report</button>
                             <a href="https://www.psychiatry.org/psychiatrists/practice/dsm" target="_blank" rel="noopener noreferrer" className="bg-white/10 hover:bg-white/20 text-white border border-white/10 px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2"><FileText size={16} /> medical citation refs</a>
                         </div>
                     </div>
@@ -754,7 +843,7 @@ export function UserAnalysis({ data, onBack }) {
                                                         <img src={tweetImg} alt="" className="w-full h-auto" />
                                                     </div>
                                                 )}
-                                                
+
                                                 {/* xAI Button */}
                                                 <div className="mt-3 pt-3 border-t border-black/5 flex justify-start">
                                                     <button
@@ -784,7 +873,7 @@ export function UserAnalysis({ data, onBack }) {
                     </motion.div>
                 </div>
             )}
-            
+
             {/* xAI Modal */}
             <XaiModal xaiData={xaiData} setXaiData={setXaiData} />
         </div>

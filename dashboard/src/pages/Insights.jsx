@@ -30,7 +30,7 @@ export function Insights({ onScanComplete }) {
   const indicated = history.filter(h => h.label === 'INDICATED');
   const highRisks = history.filter(h => h.confidence > 0.75);
   const medRisks = history.filter(h => h.confidence > 0.5 && h.confidence <= 0.75);
-  const lowRisks = history.filter(h => h.confidence > 0.15 && h.confidence <= 0.5);
+  const lowRisks = history.filter(h => h.confidence > 0.30 && h.confidence <= 0.5);
 
   const getDSMTopics = () => {
     return [
@@ -181,7 +181,7 @@ export function Insights({ onScanComplete }) {
       {/* Hero Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         {[
-            { label: 'clinical severity', val: `${avgSeverity}%`, color: 'text-rose-500', icon: ShieldAlert, info: 'tingkat keparahan indikasi depresi secara keseluruhan dari semua data.' },
+            { label: 'clinical intensity', val: `${avgSeverity}%`, color: 'text-rose-500', icon: ShieldAlert, info: 'tingkat keparahan indikasi depresi secara keseluruhan dari semua data.' },
             { label: 'critical flags', val: highRisks.length, color: 'text-amber-500', icon: AlertCircle, info: 'jumlah tweet dengan tingkat risiko klinis yang sangat tinggi atau darurat.' },
             { label: 'clinical intensity', val: `${avgIntensity}%`, color: 'text-blue-500', icon: Brain, info: 'rata-rata kekuatan dan kejelasan gejala pada tweet yang terindikasi.' },
             { label: 'total arsip', val: totalScanned, color: 'text-emerald-500', icon: ActivityIcon, info: 'total seluruh data riwayat yang tersimpan dan digunakan untuk analisis ini.' }
@@ -413,16 +413,16 @@ export function Insights({ onScanComplete }) {
                 <div className="relative w-full px-20 pb-6">
                     {/* Y-Axis Labels */}
                     <div className="absolute left-6 h-[200px] flex flex-col justify-between text-[8px] font-black text-slate-300 uppercase tracking-widest">
-                        <span>100% - high</span>
-                        <span>50% - mod</span>
+                        <span>&gt;30% - critical</span>
+                        <span>15% - mod</span>
                         <span>0% - safe</span>
                     </div>
 
                     <svg viewBox="0 0 1000 200" className="w-full h-[220px] overflow-visible">
                         {/* SEVERITY ZONES */}
-                        <rect x="80" y="0" width="840" height="60" fill="#fff1f2" fillOpacity="0.4" rx="4" /> {/* High Intensity Area */}
-                        <rect x="80" y="60" width="840" height="80" fill="#fffbeb" fillOpacity="0.4" rx="4" /> {/* Med Intensity Area */}
-                        <rect x="80" y="140" width="840" height="60" fill="#f0fdf4" fillOpacity="0.4" rx="4" /> {/* Safe Area */}
+                        <rect x="80" y="20" width="840" height="126" fill="#fff1f2" fillOpacity="0.4" rx="4" /> {/* High Intensity Area */}
+                        <rect x="80" y="146" width="840" height="27" fill="#fffbeb" fillOpacity="0.4" rx="4" /> {/* Med Intensity Area */}
+                        <rect x="80" y="173" width="840" height="27" fill="#f0fdf4" fillOpacity="0.4" rx="4" /> {/* Safe Area */}
 
                         {/* Baseline Average Line */}
                         <line x1="80" y1={200 - (avgIntensity/100) * 180} x2="920" y2={200 - (avgIntensity/100) * 180} stroke="#6C5CE7" strokeWidth="1.5" strokeDasharray="6 4" opacity="0.4" />
@@ -470,15 +470,15 @@ export function Insights({ onScanComplete }) {
                 <div className="mt-12 flex justify-center gap-8 border-t border-black/5 pt-8">
                     <div className="flex items-center gap-2">
                         <div className="w-3 h-3 bg-rose-500/10 border border-rose-500/20 rounded" />
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">high intensity (&gt;75%)</span>
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">critical intensity (&gt;30%)</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-3 h-3 bg-amber-500/10 border border-amber-500/20 rounded" />
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">moderate (50-75%)</span>
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">moderate (15-30%)</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-3 h-3 bg-emerald-500/10 border border-emerald-500/20 rounded" />
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">safe area (&lt;50%)</span>
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">safe area (&lt;15%)</span>
                     </div>
                 </div>
             </GlassCard>

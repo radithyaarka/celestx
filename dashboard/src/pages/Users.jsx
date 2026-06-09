@@ -123,8 +123,8 @@ export function Users({ onSelectUser }) {
 
   const getRiskColor = (score) => {
     const s = score * 100;
-    if (s <= 15) return 'text-emerald-500';
-    if (s <= 30) return 'text-amber-500';
+    if (s <= 25) return 'text-emerald-500';
+    if (s <= 50) return 'text-amber-500';
     return 'text-rose-500';
   };
 
@@ -223,18 +223,28 @@ export function Users({ onSelectUser }) {
                 return enScore > idScore ? 'en' : 'id';
             };
 
-            // Calculate score using Hybrid Model (Global + Peak) / 2
-            const idTweets = (scan.details || []).filter(t => detectLanguage(t.text) === 'id');
-            const totalIdScore = idTweets.reduce((acc, curr) => acc + (Number(curr.score || curr.confidence) || 0), 0);
-            const globalAvg = totalIdScore / ((scan.details || []).length || 1);
+            // Ganti Hybrid Model dengan Data Mentah (Indicated Counts)
+            const idTweets = scan.details?.filter(d => {
+                const text = d.text || "";
+                const enWords = /\b(the|is|are|in|to|of|for|with|and|on|at|i|me|my|you|your|he|she|it)\b/gi;
+                const idWords = /\b(yang|di|ke|dari|ini|itu|dan|ada|saya|aku|kamu|lo|gw|ga|tidak|untuk)\b/gi;
+                const enMatches = (text.match(enWords) || []).length;
+                const idMatches = (text.match(idWords) || []).length;
+                return enMatches <= idMatches; // Treat as ID if not predominantly EN
+            }) || [];
 
-            const sortedScores = idTweets
-                .map(d => Number(d.score || d.confidence || 0))
-                .sort((a, b) => b - a);
-            const topScores = sortedScores.slice(0, 10);
-            const peakAvg = topScores.length > 0 ? topScores.reduce((a, b) => a + b, 0) / topScores.length : 0;
+            const totalTweets = idTweets.length || 1; // Prevent div by 0
+            const indicatedCount = idTweets.filter(d => (Number(d.score) || 0) >= 0.15).length || 0;
+            const status = scan.summary?.status || 'STABIL';
+            
+            // Tentukan warna status
+            const getStatusColor = (stat) => {
+                if (stat === 'POTENSI TINGGI') return 'text-rose-500 bg-rose-500/10 border-rose-500/20';
+                if (stat === 'MODERAT') return 'text-amber-500 bg-amber-500/10 border-amber-500/20';
+                return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
+            };
 
-            const currentScore = (globalAvg + peakAvg) / 2;
+            const statusStyles = getStatusColor(status);
 
             return (
                 <div 
@@ -256,26 +266,26 @@ export function Users({ onSelectUser }) {
                                 <div className="w-20 h-20 rounded-[2rem] bg-slate-100 flex items-center justify-center text-slate-300 relative z-10"><UserCircle2 size={32} /></div>
                             )}
                             <div className="absolute -bottom-1 -right-1 bg-white p-1.5 rounded-full shadow-lg z-20 border border-black/5">
-                                <div className={`w-4 h-4 rounded-full ${currentScore > 0.5 ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}`} />
+                                <div className={`w-4 h-4 rounded-full ${status === 'POTENSI TINGGI' ? 'bg-rose-500 animate-pulse' : status === 'MODERAT' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
                             </div>
                         </div>
                         
                         <h3 className="text-lg font-black text-[#2D3436] leading-none mb-1.5 truncate w-full group-hover:text-[#6C5CE7] transition-colors">{scan.user.displayName || 'unknown'}</h3>
-                        <p className="text-slate-400 text-xs font-medium mb-8 truncate w-full">{scan.user.handle || '@unknown'}</p>
+                        <p className="text-slate-400 text-xs font-medium mb-6 truncate w-full">{scan.user.handle || '@unknown'}</p>
                         
                         <div className="w-full pt-6 border-t border-dashed border-black/10 mt-auto">
-                            <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase mb-3 tracking-widest">
-                                <span>risk severity</span>
-                                <span className={getRiskColor(currentScore)}>{(currentScore * 100).toFixed(0)}%</span>
+                            <div className={`px-4 py-2 rounded-xl border ${statusStyles} mb-4 inline-block`}>
+                                <span className="font-black text-[10px] uppercase tracking-widest">{status}</span>
                             </div>
-                            <div className="h-2 bg-slate-100 rounded-full overflow-hidden border border-black/5">
-                                <div 
-                                    className={`h-full transition-all duration-[1500ms] ${
-                                        currentScore <= 0.15 ? 'bg-emerald-500' : 
-                                        currentScore <= 0.30 ? 'bg-amber-500' : 'bg-rose-500'
-                                    }`} 
-                                    style={{ width: `${currentScore * 100}%` }} 
-                                />
+                            <div className="flex justify-between items-center text-left">
+                                <div>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">total aktivitas</p>
+                                    <p className="text-lg font-black text-[#2D3436] leading-none">{totalTweets}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-[9px] font-black text-rose-400 uppercase tracking-widest mb-1">terindikasi</p>
+                                    <p className="text-lg font-black text-rose-500 leading-none">{indicatedCount}</p>
+                                </div>
                             </div>
                         </div>
 
