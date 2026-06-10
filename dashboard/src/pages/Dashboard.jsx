@@ -174,7 +174,7 @@ export function Dashboard({ onNavigate }) {
             <div className="flex justify-between items-start border-b border-black/5 pb-4 mb-4">
               <div>
                 <div className="flex items-center gap-1.5">
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none">total throughput</p>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none">total tweet dipindai</p>
                   <div className="relative group/info">
                     <Info size={12} className="text-slate-300" />
                     <div className="absolute bottom-full left-0 mb-2 w-56 p-3 bg-[#2D3436] text-white text-[10px] font-medium leading-relaxed rounded-xl opacity-0 group-hover/info:opacity-100 transition-all pointer-events-none z-[100] shadow-2xl border border-white/10 lowercase">
@@ -245,7 +245,7 @@ export function Dashboard({ onNavigate }) {
               <div className="p-2.5 bg-emerald-500/10 rounded-xl text-emerald-500 mb-2.5"><TrendingDown size={20} /></div>
               <p className={`text-2xl font-black leading-none ${getRiskColor(Number(alertRate) / 100)}`}>{alertRate}%</p>
               <div className="flex items-center justify-center gap-1 mt-2">
-                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-none">risk rate</p>
+                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-none">tingkat risiko</p>
                 <div className="relative group/info">
                   <Info size={12} className="text-slate-300" />
                   <div className="absolute bottom-full left-0 mb-2 w-48 p-3 bg-[#2D3436] text-white text-[10px] font-medium leading-relaxed rounded-xl opacity-0 group-hover/info:opacity-100 transition-all pointer-events-none z-[100] shadow-2xl border border-white/10 lowercase text-left">
@@ -260,7 +260,7 @@ export function Dashboard({ onNavigate }) {
               <div className="p-2.5 bg-blue-500/10 rounded-xl text-blue-500 mb-2.5"><Users size={20} /></div>
               <p className="text-2xl font-black leading-none text-[#2D3436]">{uniqueUsers}</p>
               <div className="flex items-center justify-center gap-1 mt-2">
-                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-none">subjects</p>
+                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-none">pengguna unik</p>
                 <div className="relative group/info">
                   <Info size={12} className="text-slate-300" />
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-[#2D3436] text-white text-[10px] font-medium leading-relaxed rounded-xl opacity-0 group-hover/info:opacity-100 transition-all pointer-events-none z-[100] shadow-2xl border border-white/10 lowercase text-center">
@@ -275,7 +275,7 @@ export function Dashboard({ onNavigate }) {
               <div className="p-2.5 bg-indigo-500/10 rounded-xl text-indigo-500 mb-2.5"><Activity size={20} /></div>
               <p className="text-2xl font-black leading-none text-[#2D3436]">{avgConfidence}%</p>
               <div className="flex items-center justify-center gap-1 mt-2">
-                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-none">intensity</p>
+                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-none">rata-rata intensitas</p>
                 <div className="relative group/info">
                   <Info size={12} className="text-slate-300" />
                   <div className="absolute bottom-full right-0 mb-2 w-48 p-3 bg-[#2D3436] text-white text-[10px] font-medium leading-relaxed rounded-xl opacity-0 group-hover/info:opacity-100 transition-all pointer-events-none z-[100] shadow-2xl border border-white/10 lowercase text-right">
@@ -302,7 +302,7 @@ export function Dashboard({ onNavigate }) {
               <p className="text-xl font-black leading-none">
                 {scanning ? 'sedang memindai...' : 'scan manual'}
               </p>
-              <p className="text-[10px] opacity-70 font-bold uppercase tracking-widest mt-1.5">perbarui data timeline</p>
+              <p className="text-[10px] opacity-70 font-bold uppercase tracking-widest mt-1.5">pindai tweet yang ada di layar sekarang</p>
             </div>
           </div>
 

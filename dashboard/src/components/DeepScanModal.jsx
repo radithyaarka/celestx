@@ -88,63 +88,74 @@ export function DeepScanModal({ targetUser, onConfirm, onClose, isScanning }) {
           </div>
         </div>
 
-        {/* Body */}
-        <div className="px-8 py-6 space-y-5">
-          <p className="text-slate-600 text-sm leading-relaxed font-medium">
-            Sistem akan membuka tab Twitter secara otomatis, mengambil{' '}
-            <span className="font-black text-[#2D3436]">50 tweet terakhir</span> dari profil ini,
-            lalu menjalankan analisis klinis mendalam menggunakan model{' '}
-            <span className="font-black text-[#2D3436]">IndoBERTweet</span>.
-          </p>
+        {/* Body & Footer */}
+        {!isScanning ? (
+          <>
+            <div className="px-8 py-6 space-y-5">
+              <div className="text-slate-600 text-sm leading-relaxed font-medium space-y-3">
+                <p>Proses analisis mendalam akan melakukan hal berikut:</p>
+                <ol className="list-decimal list-inside space-y-1.5 ml-1">
+                  <li>Membuka tab baru ke profil <span className="font-black text-[#2D3436]">@{handle}</span>.</li>
+                  <li>Melakukan scroll otomatis untuk mengambil <span className="font-black text-[#2D3436]">50 tweet terakhir</span>.</li>
+                  <li>Menutup tab secara otomatis setelah data terkumpul.</li>
+                  <li>Menganalisis indikasi klinis dengan model <span className="font-black text-[#2D3436]">Multimodal Fusion (Teks & Visual)</span>.</li>
+                </ol>
+              </div>
 
-          <div className="flex items-start gap-3 bg-amber-50 border border-amber-100 p-4 rounded-2xl">
-            <AlertTriangle size={16} className="text-amber-500 shrink-0 mt-0.5" />
-            <p className="text-amber-700 text-[11px] leading-relaxed font-medium">
-              Proses ini akan membuka tab baru Twitter sementara dan menutupnya otomatis setelah selesai. Estimasi waktu: <span className="font-black">30–60 detik</span>.
-            </p>
-          </div>
+              <div className="flex items-start gap-3 bg-amber-50 border border-amber-100 p-4 rounded-2xl">
+                <AlertTriangle size={16} className="text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-amber-700 text-[11px] leading-relaxed font-medium">
+                  <span className="font-black">PENTING:</span> Jangan menutup atau berpindah tab selama proses berlangsung. Estimasi waktu: <span className="font-black">30–60 detik</span>.
+                </p>
+              </div>
+            </div>
 
-          <div className="flex items-start gap-3 bg-[#6C5CE7]/5 border border-[#6C5CE7]/10 p-4 rounded-2xl">
-            <ShieldAlert size={16} className="text-[#6C5CE7] shrink-0 mt-0.5" />
-            <p className="text-[#6C5CE7]/70 text-[11px] leading-relaxed font-medium">
-              Analisis ini hanya untuk keperluan riset akademis. Hasil tidak merupakan diagnosa medis formal.
-            </p>
-          </div>
-        </div>
-
-        {/* Footer Actions */}
-        <div className="px-8 pb-8 flex gap-3">
-          <button
-            onClick={onClose}
-            disabled={isScanning}
-            className="flex-1 py-3.5 rounded-2xl border border-black/5 bg-slate-50 hover:bg-slate-100 text-slate-500 font-black text-[10px] uppercase tracking-widest transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            batal
-          </button>
-          <button
-            onClick={() => onConfirm(targetUser)}
-            disabled={isScanning}
-            className="flex-[2] py-3.5 rounded-2xl bg-[#6C5CE7] hover:bg-[#5b4bc4] text-white font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-[#6C5CE7]/25 flex items-center justify-center gap-2.5 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {isScanning ? (
-              <>
-                <Loader2 size={14} className="animate-spin" />
-                sedang memindai...
-              </>
-            ) : (
-              <>
+            {/* Footer Actions */}
+            <div className="px-8 pb-8 flex gap-3">
+              <button
+                onClick={onClose}
+                className="flex-1 py-3.5 rounded-2xl border border-black/5 bg-slate-50 hover:bg-slate-100 text-slate-500 font-black text-[10px] uppercase tracking-widest transition-all"
+              >
+                batal
+              </button>
+              <button
+                onClick={() => onConfirm(targetUser)}
+                className="flex-[2] py-3.5 rounded-2xl bg-[#6C5CE7] hover:bg-[#5b4bc4] text-white font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-[#6C5CE7]/25 flex items-center justify-center gap-2.5"
+              >
                 <ScanSearch size={14} />
-                ya, mulai deep scan
-              </>
-            )}
-          </button>
-        </div>
+                ya, mulai analisis
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="px-8 py-12 flex flex-col items-center justify-center text-center space-y-6">
+            <div className="relative">
+              <div className="absolute inset-0 bg-[#6C5CE7]/20 rounded-full animate-ping" />
+              <div className="bg-[#6C5CE7] p-4 rounded-full relative z-10">
+                <Loader2 size={32} className="text-white animate-spin" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-[#2D3436] font-black text-lg animate-pulse">Sedang memproses...</h3>
+              <p className="text-slate-400 text-xs font-medium">Jangan tutup tab ini. Proses berjalan otomatis.</p>
+            </div>
+            
+            {/* Indeterminate Progress Bar */}
+            <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mt-4">
+              <div className="h-full bg-[#6C5CE7] w-1/3 animate-[progress_1.5s_ease-in-out_infinite]" />
+            </div>
+          </div>
+        )}
       </div>
 
       <style>{`
         @keyframes modalIn {
           from { opacity: 0; transform: scale(0.92) translateY(12px); }
           to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes progress {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(300%); }
         }
       `}</style>
     </div>

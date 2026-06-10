@@ -25,7 +25,6 @@ import {
 
 export function History({ onNavigate, onScanComplete }) {
   const [history, setHistory] = useState([]);
-  const [filterCritical, setFilterCritical] = useState(false);
   
   // xAI State
   const [xaiData, setXaiData] = useState(null);
@@ -151,12 +150,12 @@ export function History({ onNavigate, onScanComplete }) {
     }
   };
 
-  const highRisks = history.filter(h => h.confidence > 0.30).length;
+  const highRisks = history.filter(h => h.confidence > 0.50).length;
   const avgScore = history.length > 0 
     ? (history.reduce((a, b) => a + b.confidence, 0) / history.length * 100).toFixed(0) 
     : 0;
 
-  const displayedHistory = filterCritical ? history.filter(h => h.confidence > 0.30) : history;
+  const displayedHistory = history;
 
   return (
     <div className="max-w-7xl mx-auto space-y-12 pb-20 lowercase relative px-4">
@@ -169,7 +168,7 @@ export function History({ onNavigate, onScanComplete }) {
             <div className="bg-[#6C5CE7]/10 p-3 rounded-xl text-[#6C5CE7] shadow-sm"><HistoryIcon size={24} /></div>
             <h2 className="text-4xl font-black text-[#2D3436] tracking-tighter leading-none">archive vault.</h2>
           </div>
-          <p className="text-slate-400 text-sm font-medium pl-16">manajemen data intelijen untuk pola perilaku terdeteksi.</p>
+          <p className="text-slate-400 text-sm font-medium pl-16">riwayat tweet yang terindikasi oleh sistem.</p>
         </div>
         
         <div className="flex items-center gap-3 self-start md:self-end">
@@ -187,31 +186,26 @@ export function History({ onNavigate, onScanComplete }) {
 
       {history.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0">
-          <div 
-            onClick={() => setFilterCritical(!filterCritical)}
-            className={`cursor-pointer border p-6 rounded-[2rem] flex items-center gap-4 shadow-sm group transition-all relative ${
-              filterCritical ? 'bg-rose-50 border-rose-500/40 shadow-rose-500/10' : 'bg-white border-black/5 hover:border-rose-500/30'
-            }`}
-          >
-            <div className={`p-2.5 rounded-lg transition-all ${filterCritical ? 'bg-rose-500 text-white' : 'bg-rose-50 text-rose-300 group-hover:bg-rose-500 group-hover:text-white'}`}><ShieldAlert size={18} /></div>
+          <div className="bg-white border border-black/5 p-6 rounded-[2rem] flex items-center gap-4 shadow-sm relative">
+            <div className="p-2.5 rounded-lg bg-rose-50 text-rose-500"><ShieldAlert size={18} /></div>
             <div>
               <div className="flex items-center gap-1.5 mb-1.5">
-                <p className={`text-[10px] font-black uppercase tracking-widest leading-none ${filterCritical ? 'text-rose-500' : 'text-slate-400'}`}>critical</p>
+                <p className="text-[10px] font-black uppercase tracking-widest leading-none text-slate-400">peringatan kritis</p>
                 <div className="relative group/info">
-                  <Info size={12} className={filterCritical ? 'text-rose-400' : 'text-slate-300'} />
+                  <Info size={12} className="text-slate-300" />
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-[#2D3436] text-white text-[10px] font-medium leading-relaxed rounded-xl opacity-0 group-hover/info:opacity-100 transition-all pointer-events-none z-[100] shadow-2xl border border-white/10 text-center normal-case">
-                    Aktivitas dengan intensitas deteksi di atas 30% (Potensi Tinggi).
+                    Aktivitas dengan intensitas deteksi di atas 50% (Potensi Tinggi).
                   </div>
                 </div>
               </div>
               <p className="text-2xl font-black text-rose-500 leading-none">{highRisks}</p>
             </div>
           </div>
-          <div className="bg-white border border-black/5 p-6 rounded-[2rem] flex items-center gap-4 shadow-sm group hover:border-[#6C5CE7]/30 transition-all">
-            <div className="bg-indigo-50 p-2.5 rounded-lg text-indigo-300 group-hover:bg-indigo-500 group-hover:text-white transition-all"><TrendingUp size={18} /></div>
+          <div className="bg-white border border-black/5 p-6 rounded-[2rem] flex items-center gap-4 shadow-sm">
+            <div className="bg-indigo-50 p-2.5 rounded-lg text-indigo-300"><TrendingUp size={18} /></div>
             <div>
               <div className="flex items-center gap-1.5 mb-1.5">
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest leading-none">avg intensity</p>
+                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest leading-none">rata-rata intensitas</p>
                 <div className="relative group/info">
                   <Info size={12} className="text-slate-300" />
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-[#2D3436] text-white text-[10px] font-medium leading-relaxed rounded-xl opacity-0 group-hover/info:opacity-100 transition-all pointer-events-none z-[100] shadow-2xl border border-white/10 text-center normal-case">
@@ -222,7 +216,7 @@ export function History({ onNavigate, onScanComplete }) {
               <p className="text-2xl font-black text-[#6C5CE7] leading-none">{avgScore}%</p>
             </div>
           </div>
-          <div className="bg-[#6C5CE7] p-6 rounded-[2rem] flex items-center gap-4 shadow-lg shadow-[#6C5CE7]/20 border border-[#6C5CE7]">
+          <div className="bg-[#6C5CE7] p-6 rounded-[2rem] flex items-center gap-4 shadow-md border border-[#6C5CE7]">
             <div className="bg-white/20 p-2.5 rounded-lg text-white"><Zap size={18} /></div>
             <div><p className="text-[10px] text-white/60 font-black uppercase tracking-widest leading-none mb-1.5">status</p><p className="text-2xl font-black text-white leading-none">active</p></div>
           </div>

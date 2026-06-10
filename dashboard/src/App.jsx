@@ -6,11 +6,12 @@ import { UserAnalysis } from './pages/UserAnalysis';
 import { Settings } from './pages/Settings';
 import { Insights } from './pages/Insights';
 import { Users } from './pages/Users';
+import { Landing } from './pages/Landing';
 import { Cloud, Menu } from 'lucide-react';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('dashboard');
-  const [previousPage, setPreviousPage] = useState('history'); // Track where we came from
+  const [currentPage, setCurrentPage] = useState('landing');
+  const [previousPage, setPreviousPage] = useState('dashboard'); // Track where we came from
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [analysisData, setAnalysisData] = useState(null);
 
@@ -43,6 +44,10 @@ function App() {
     setCurrentPage(page);
     setMobileMenuOpen(false);
   };
+
+  if (currentPage === 'landing') {
+    return <Landing onNavigate={navigate} />;
+  }
 
   return (
     <div className="min-h-screen bg-[#F7F9FC] text-[#2D3436] selection:bg-[#6C5CE7]/20 flex lowercase">

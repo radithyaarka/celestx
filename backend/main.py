@@ -1,4 +1,9 @@
 import uvicorn
+import os
+
+# Prevent HuggingFace from attempting to connect to the internet
+os.environ["HF_HUB_OFFLINE"] = "1"
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
@@ -309,8 +314,8 @@ async def predict_batch(input_data: BatchTweetInput):
     # Menghitung rasio indikasi depresi sesuai metodologi Buku TA
     indicated_ratio = indicated_count / len(input_data.tweets) if input_data.tweets else 0
 
-    if indicated_ratio > 0.30: status_label = "POTENSI TINGGI"
-    elif indicated_ratio > 0.15: status_label = "MODERAT"
+    if indicated_ratio > 0.50: status_label = "POTENSI TINGGI"
+    elif indicated_ratio > 0.25: status_label = "MODERAT"
     else: status_label = "STABIL"
 
     return {

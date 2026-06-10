@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { GlassCard } from '../components/GlassCard';
+import { DeepScanModal } from '../components/DeepScanModal';
 import { UserSearch, ChevronRight, UserCircle2, ArrowUpRight, Users as UsersIcon, Search, Zap, Loader2, Sparkles } from 'lucide-react';
 
 export function Users({ onSelectUser }) {
   const [analyzedUsers, setAnalyzedUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [scanningHandle, setScanningHandle] = useState(null);
+  const [pendingScanTarget, setPendingScanTarget] = useState(null);
   const [settings, setSettings] = useState({ scanDepth: 50 });
 
   useEffect(() => {
@@ -34,13 +36,18 @@ export function Users({ onSelectUser }) {
     return () => chrome.storage.onChanged.removeListener(loadUsers);
   }, []);
 
-  const handleInitiateScan = async (e) => {
+  const handleInitiateScanClick = (e) => {
     e.preventDefault();
     if (!searchQuery) return;
     
     const handle = searchQuery.replace('@', '').trim();
     if (!handle) return;
 
+    setPendingScanTarget({ handle: `@${handle}`, displayName: handle });
+  };
+
+  const performScan = async (targetUser) => {
+    const handle = targetUser.handle.replace('@', '').trim();
     setScanningHandle(handle);
     
     // 1. Open Twitter Tab
@@ -70,7 +77,7 @@ export function Users({ onSelectUser }) {
                                 text: t.text,
                                 imageUrl: t.imageUrl || t.mediaUrl || null
                             }));
-                            const threshold = (settings.confidenceThreshold || 15) / 100;
+                            const threshold = (settings.confidenceThreshold || 25) / 100;
                             const res = await fetch("http://localhost:8000/predict-user", {
                                 method: "POST",
                                 headers: { "Content-Type": "application/json" },
@@ -104,6 +111,7 @@ export function Users({ onSelectUser }) {
                                 const newScans = { ...(s.sentimenta_deep_scans || {}), [`@${handle}`]: scanData };
                                 chrome.storage.local.set({ sentimenta_deep_scans: newScans }, () => {
                                     setScanningHandle(null);
+                                    setPendingScanTarget(null);
                                     setSearchQuery('');
                                     onSelectUser(scanData);
                                 });
@@ -112,6 +120,7 @@ export function Users({ onSelectUser }) {
                             console.error(err);
                             alert("error saat melakukan analisis mesin.");
                             setScanningHandle(null);
+                            setPendingScanTarget(null);
                         }
                     });
                 }, 4000); // 4s buffer for X's heavy JS
@@ -139,7 +148,7 @@ export function Users({ onSelectUser }) {
                     <div className="bg-[#6C5CE7]/10 p-3 rounded-xl text-[#6C5CE7] shadow-sm"><UsersIcon size={24} /></div>
                     <h2 className="text-4xl font-black text-[#2D3436] tracking-tighter leading-none">analyzed users.</h2>
                 </div>
-                <p className="text-slate-400 text-sm font-medium pl-16">direktori profil dengan riwayat deep-scan yang telah selesai.</p>
+                <p className="text-slate-400 text-sm font-medium pl-16">daftar pengguna yang sudah dianalisis mendalam.</p>
             </div>
         </div>
 
@@ -152,7 +161,7 @@ export function Users({ onSelectUser }) {
                     <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">initiate direct intelligence scan</h3>
                 </div>
                 
-                <form onSubmit={handleInitiateScan} className="flex flex-col md:flex-row gap-4">
+                <form onSubmit={handleInitiateScanClick} className="flex flex-col md:flex-row gap-4">
                     <div className="flex-1 relative group">
                         <div className="absolute inset-y-0 left-5 flex items-center text-slate-300 group-focus-within:text-[#6C5CE7] transition-colors">
                             <Search size={20} />
@@ -170,22 +179,13 @@ export function Users({ onSelectUser }) {
                         type="submit"
                         disabled={!!scanningHandle || !searchQuery}
                         className={`px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-3 shadow-lg ${
-                            scanningHandle 
+                            !searchQuery 
                             ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
                             : 'bg-[#6C5CE7] hover:bg-[#5b4bc4] text-white hover:shadow-[#6C5CE7]/30'
                         }`}
                     >
-                        {scanningHandle ? (
-                            <>
-                                <Loader2 size={16} className="animate-spin" />
-                                scanning @{scanningHandle}...
-                            </>
-                        ) : (
-                            <>
-                                <Zap size={16} />
-                                initiate deep scan
-                            </>
-                        )}
+                        <Zap size={16} />
+                        mulai analisis
                     </button>
                 </form>
                 <p className="mt-4 text-[9px] text-slate-400 font-medium italic">*sistem akan otomatis membuka tab twitter dan melakukan analisis klinis mendalam pada {settings?.scanDepth || 50} tweet terakhir.</p>
@@ -234,7 +234,7 @@ export function Users({ onSelectUser }) {
             }) || [];
 
             const totalTweets = idTweets.length || 1; // Prevent div by 0
-            const indicatedCount = idTweets.filter(d => (Number(d.score) || 0) >= 0.15).length || 0;
+            const indicatedCount = idTweets.filter(d => (Number(d.score) || 0) >= 0.25).length || 0;
             const status = scan.summary?.status || 'STABIL';
             
             // Tentukan warna status
@@ -299,6 +299,13 @@ export function Users({ onSelectUser }) {
             })}
             </div>
         )}
+
+        <DeepScanModal
+          targetUser={pendingScanTarget}
+          onConfirm={performScan}
+          onClose={() => setPendingScanTarget(null)}
+          isScanning={!!scanningHandle}
+        />
     </div>
   );
 }

@@ -10,7 +10,7 @@ export function Settings() {
     scanInterval: 2,
     enableNotifications: true,
     backendUrl: 'http://localhost:8000',
-    confidenceThreshold: 15,
+    confidenceThreshold: 25,
     scanDepth: 50
   });
   const [saved, setSaved] = useState(false);
@@ -189,7 +189,7 @@ export function Settings() {
                             </div>
                             <div>
                                 <p className="font-black text-lg text-[#2D3436]">fastapi backend url</p>
-                                <p className="text-xs text-slate-400 font-medium mt-1">endpoint server model indobertweet.</p>
+                                <p className="text-xs text-slate-400 font-medium mt-1">endpoint server model multimodal fusion.</p>
                             </div>
                         </div>
                         <input 
@@ -231,7 +231,7 @@ export function Settings() {
                 <div className="space-y-4">
                     <h4 className="text-2xl font-black tracking-tighter text-[#2D3436]">intelligence engine</h4>
                     <p className="text-sm text-slate-500 leading-relaxed font-medium">
-                        sistem menggunakan model <span className="text-[#6C5CE7] font-black underline decoration-[#6C5CE7]/30 decoration-2">indobertweet</span> untuk deteksi linguistik bahasa indonesia yang akurat.
+                        sistem menggunakan model <span className="text-[#6C5CE7] font-black underline decoration-[#6C5CE7]/30 decoration-2">multimodal fusion</span> untuk deteksi linguistik dan visual yang akurat.
                     </p>
                     <div className="flex flex-col gap-2 pt-2">
                         <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest bg-slate-50 px-4 py-2.5 rounded-xl border border-black/5 text-slate-400">

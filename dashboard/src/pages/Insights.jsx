@@ -28,9 +28,8 @@ export function Insights({ onScanComplete }) {
   }).reverse();
 
   const indicated = history.filter(h => h.label === 'INDICATED');
-  const highRisks = history.filter(h => h.confidence > 0.75);
-  const medRisks = history.filter(h => h.confidence > 0.5 && h.confidence <= 0.75);
-  const lowRisks = history.filter(h => h.confidence > 0.30 && h.confidence <= 0.5);
+  const highRisks = history.filter(h => h.confidence > 0.50);
+  const medRisks = history.filter(h => h.confidence > 0.25 && h.confidence <= 0.50);
 
   const getDSMTopics = () => {
     return [
@@ -181,9 +180,9 @@ export function Insights({ onScanComplete }) {
       {/* Hero Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         {[
-            { label: 'clinical intensity', val: `${avgSeverity}%`, color: 'text-rose-500', icon: ShieldAlert, info: 'tingkat keparahan indikasi depresi secara keseluruhan dari semua data.' },
-            { label: 'critical flags', val: highRisks.length, color: 'text-amber-500', icon: AlertCircle, info: 'jumlah tweet dengan tingkat risiko klinis yang sangat tinggi atau darurat.' },
-            { label: 'clinical intensity', val: `${avgIntensity}%`, color: 'text-blue-500', icon: Brain, info: 'rata-rata kekuatan dan kejelasan gejala pada tweet yang terindikasi.' },
+            { label: 'intensitas klinis', val: `${avgSeverity}%`, color: 'text-rose-500', icon: ShieldAlert, info: 'tingkat keparahan indikasi depresi secara keseluruhan dari semua data.' },
+            { label: 'peringatan kritis', val: highRisks.length, color: 'text-amber-500', icon: AlertCircle, info: 'jumlah tweet dengan tingkat risiko klinis yang sangat tinggi atau darurat.' },
+            { label: 'intensitas klinis', val: `${avgIntensity}%`, color: 'text-blue-500', icon: Brain, info: 'rata-rata kekuatan dan kejelasan gejala pada tweet yang terindikasi.' },
             { label: 'total arsip', val: totalScanned, color: 'text-emerald-500', icon: ActivityIcon, info: 'total seluruh data riwayat yang tersimpan dan digunakan untuk analisis ini.' }
         ].map((stat, i) => {
             const alignClass = i === 3 ? 'right-0 text-right' : (i === 0 ? 'left-0 text-left' : 'left-1/2 -translate-x-1/2 text-center');
@@ -221,7 +220,7 @@ export function Insights({ onScanComplete }) {
                     <div className="md:col-span-5 flex flex-col items-center gap-6">
                         <div className="space-y-1 text-center">
                             <h3 className="text-xl font-black text-white flex items-center justify-center gap-2.5 tracking-tighter uppercase">
-                                <Target size={20} className="text-white/80" /> dsm-5 signature
+                                <Target size={20} className="text-white/80" /> profil gejala dsm-5
                             </h3>
                             <p className="text-[9px] text-white/50 font-bold uppercase tracking-widest">distribusi kriteria diagnosis</p>
                         </div>
@@ -266,7 +265,7 @@ export function Insights({ onScanComplete }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <GlassCard className="p-8 border-none shadow-sm bg-white rounded-[2rem]">
                     <h3 className="text-base font-black text-[#2D3436] flex items-center gap-2.5 tracking-tighter uppercase">
-                        <Users size={18} className="text-[#6C5CE7]" /> self-focus index
+                        <Users size={18} className="text-[#6C5CE7]" /> indeks fokus diri
                     </h3>
                     <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5 mb-6">analisis kata ganti orang pertama</p>
                     <div className="space-y-4">
@@ -294,7 +293,7 @@ export function Insights({ onScanComplete }) {
 
                 <GlassCard className="p-8 border-none shadow-sm bg-white rounded-[2rem]">
                     <h3 className="text-base font-black text-[#2D3436] flex items-center gap-2.5 tracking-tighter uppercase">
-                        <Share2 size={18} className="text-[#6C5CE7]" /> population pulse
+                        <Share2 size={18} className="text-[#6C5CE7]" /> gambaran populasi
                     </h3>
                     <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5 mb-6">densitas risiko pada populasi</p>
                     <div className="flex items-center justify-center py-2">
@@ -312,14 +311,13 @@ export function Insights({ onScanComplete }) {
         <div className="lg:col-span-4 space-y-8 flex flex-col">
             <GlassCard className="p-8 border-none shadow-sm bg-white rounded-[2rem] flex-1">
                 <h3 className="text-base font-black text-[#2D3436] flex items-center gap-2.5 tracking-tighter uppercase">
-                    <PieChart size={18} className="text-[#6C5CE7]" /> indication spread
+                    <PieChart size={18} className="text-[#6C5CE7]" /> sebaran indikasi
                 </h3>
                 <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5 mb-8">distribusi intensitas deteksi</p>
                 <div className="space-y-6">
                     {[
                         { label: 'intensitas tinggi', count: highRisks.length, color: 'text-rose-500', bg: 'bg-rose-500' },
-                        { label: 'intensitas sedang', count: medRisks.length, color: 'text-amber-500', bg: 'bg-amber-500' },
-                        { label: 'intensitas rendah', count: lowRisks.length, color: 'text-sky-500', bg: 'bg-sky-500' }
+                        { label: 'intensitas sedang', count: medRisks.length, color: 'text-amber-500', bg: 'bg-amber-500' }
                     ].map((row, i) => (
                         <div key={i} className="space-y-2 border-b border-black/5 pb-4 last:border-0">
                             <div className="flex items-center justify-between">
@@ -339,7 +337,7 @@ export function Insights({ onScanComplete }) {
 
             <GlassCard className="p-8 border-none shadow-sm bg-white rounded-[2rem]">
                 <h3 className="text-base font-black text-[#2D3436] flex items-center gap-2.5 tracking-tighter uppercase">
-                    <Tag size={18} className="text-[#6C5CE7]" /> trigger cloud
+                    <Tag size={18} className="text-[#6C5CE7]" /> kata kunci pemicu
                 </h3>
                 <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5 mb-6">kata kunci pemicu utama</p>
                 <div className="flex flex-wrap gap-2.5">
@@ -353,7 +351,7 @@ export function Insights({ onScanComplete }) {
 
             <GlassCard className="p-8 border-none shadow-sm bg-white rounded-[2rem]">
                 <h3 className="text-base font-black flex items-center gap-2.5 tracking-tighter text-[#2D3436] uppercase">
-                    <Clock size={18} className="text-[#6C5CE7]" /> temporal heatmap
+                    <Clock size={18} className="text-[#6C5CE7]" /> peta waktu aktivitas
                 </h3>
                 <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5 mb-6">distribusi waktu aktivitas</p>
                 <div className="grid grid-cols-6 gap-x-2 gap-y-3 mt-4">
@@ -380,7 +378,7 @@ export function Insights({ onScanComplete }) {
                     <div className="space-y-1">
                         <div className="flex items-center gap-3">
                             <TrendingUp size={24} className="text-[#6C5CE7]" />
-                            <h3 className="text-xl font-black text-[#2D3436] tracking-tighter uppercase">clinical intensity trend.</h3>
+                            <h3 className="text-xl font-black text-[#2D3436] tracking-tighter uppercase">tren intensitas klinis.</h3>
                             <div className="flex items-center gap-1.5 bg-rose-500/10 text-rose-500 px-2 py-0.5 rounded-full border border-rose-500/10">
                                 <Activity size={10} />
                                 <span className="text-[8px] font-black uppercase tracking-widest">live tracking</span>
@@ -413,8 +411,8 @@ export function Insights({ onScanComplete }) {
                 <div className="relative w-full px-20 pb-6">
                     {/* Y-Axis Labels */}
                     <div className="absolute left-6 h-[200px] flex flex-col justify-between text-[8px] font-black text-slate-300 uppercase tracking-widest">
-                        <span>&gt;30% - critical</span>
-                        <span>15% - mod</span>
+                        <span>&gt;50% - critical</span>
+                        <span>25% - mod</span>
                         <span>0% - safe</span>
                     </div>
 

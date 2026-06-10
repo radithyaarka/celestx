@@ -44,7 +44,7 @@ export function XaiModal({ xaiData, setXaiData }) {
                             <Sparkles size={24} className="text-[#6C5CE7]" />
                             xAI Lexical Analysis
                         </h3>
-                        <p className="text-slate-400 text-xs font-medium mt-1">SHAP-based Occlusion Sensitivity for IndoBERTweet</p>
+                        <p className="text-slate-400 text-xs font-medium mt-1">SHAP-based Occlusion Sensitivity for Multimodal Fusion</p>
                     </div>
                     <button 
                         onClick={() => setXaiData(null)}
@@ -140,7 +140,7 @@ export function XaiModal({ xaiData, setXaiData }) {
 
                                     if (risk > 0.5 && drivers.length > 0) {
                                         const topWords = drivers.slice(0, 2).map(d => `"${d.word.replace(/##/g, '')}"`).join(' dan ');
-                                        if (variation === 0) return `Model IndoBERTweet sangat yakin teks ini mengindikasikan depresi berat. Kemunculan kata ${topWords} menjadi pemicu utama yang melambungkan skor risiko secara drastis.`;
+                                        if (variation === 0) return `Model Multimodal sangat yakin teks ini mengindikasikan depresi berat. Kemunculan kata ${topWords} menjadi pemicu utama yang melambungkan skor risiko secara drastis.`;
                                         if (variation === 1) return `Berdasarkan analisis bobot kata (SHAP), kalimat ini masuk kategori krisis. Model mendeteksi bahwa kata ${topWords} memiliki pengaruh emosional terburuk di dalam teks.`;
                                         return `Tingkat keparahan klinis pada teks ini dinilai sangat tinggi oleh AI. Kata ${topWords} menjadi kontributor dominan yang merusak sentimen keseluruhan kalimat.`;
                                     } else if (risk > 0.15 && drivers.length > 0) {
