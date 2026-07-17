@@ -301,15 +301,15 @@ export function UserAnalysis({ data, onBack }) {
                     </GlassCard>
 
                     <GlassCard className="p-8 border-none shadow-xl bg-[#2D3436] text-white flex flex-col items-center justify-center rounded-[2.5rem]">
-                        <CircularMeter score={indicatedRatio} size={180} strokeWidth={16} />
+                        <CircularMeter score={aiCertaintyScore} size={180} strokeWidth={16} />
                         <div className="mt-8 text-center space-y-1">
                             <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-3">risk level status</p>
-                            {indicatedRatio > 0.50 ? (
+                            {aiCertaintyScore > 0.50 ? (
                                 <div className="bg-rose-500/20 text-rose-400 px-5 py-2 rounded-full border border-rose-500/30 flex items-center justify-center gap-2 animate-pulse shadow-[0_0_15px_rgba(244,63,94,0.3)]">
                                     <AlertCircle size={16} />
                                     <span className="font-black text-xs uppercase tracking-widest">Potensi Tinggi</span>
                                 </div>
-                            ) : indicatedRatio > 0.25 ? (
+                            ) : aiCertaintyScore > 0.25 ? (
                                 <div className="text-amber-400 font-black text-xs uppercase tracking-widest">
                                     Moderat
                                 </div>
@@ -430,7 +430,7 @@ export function UserAnalysis({ data, onBack }) {
                                                                 ? 'text-[#5849D4] bg-[#6C5CE7]/10 border border-[#6C5CE7]/20'
                                                                 : getRiskColor(item?.score || 0)
                                                                 }`}>
-                                                                {isEnglish ? 'EXTERNAL LANGUAGE - NO SCORE' : `${((item?.score || 0) * 100).toFixed(0)}%`}
+                                                                {isEnglish ? 'EXTERNAL LANGUAGE - NO SCORE' : ((item?.score || item?.confidence || 0) <= 0.25 ? 'AMAN' : (item?.score || item?.confidence || 0) <= 0.50 ? 'SEDIKIT TERINDIKASI' : 'TERINDIKASI')}
                                                             </p>
                                                         </div>
                                                     </div>
@@ -686,11 +686,11 @@ export function UserAnalysis({ data, onBack }) {
                         <div className="flex items-center gap-3 text-[#74B9FF] font-black uppercase tracking-[0.2em] text-[10px]"><Sparkles size={16} /> ai clinical interpretation</div>
                         <h3 className="text-3xl font-black tracking-tighter leading-tight">
                             {(() => {
-                                if (indicatedRatio > 0.50) {
+                                if (aiCertaintyScore > 0.50) {
                                     return topIndicator
                                         ? `analisis menunjukkan prevalensi ${topIndicator.label} yang sangat signifikan.`
                                         : "terdeteksi frekuensi emosional yang sangat tinggi namun tidak spesifik secara klinis.";
-                                } else if (indicatedRatio > 0.25) {
+                                } else if (aiCertaintyScore > 0.25) {
                                     return topIndicator
                                         ? `terdeteksi indikasi ${topIndicator.label} dalam frekuensi sedang.`
                                         : "terdeteksi fluktuasi emosional ringan yang bersifat umum.";
@@ -703,22 +703,22 @@ export function UserAnalysis({ data, onBack }) {
                             <p className="text-slate-400 text-base leading-relaxed font-medium">
                                 {(() => {
                                     const tweetCount = detailsData.length;
-                                    if (indicatedRatio > 0.50) {
+                                    if (aiCertaintyScore > 0.50) {
                                         return topIndicator
-                                            ? `berdasarkan ${tweetCount} aktivitas terakhir, rasio depresi mencapai titik kritis (>50%). pola bahasa sangat kuat merujuk pada "${topIndicator.label}" dengan penggunaan kata kunci seperti "${topIndicator.keywords.slice(0, 2).join(', ')}". diperlukan perhatian profesional segera.`
+                                            ? `berdasarkan ${tweetCount} aktivitas terakhir, tingkat keparahan risiko (hybrid score) mencapai titik kritis (>50%). pola bahasa sangat kuat merujuk pada "${topIndicator.label}" dengan penggunaan kata kunci seperti "${topIndicator.keywords.slice(0, 2).join(', ')}". diperlukan perhatian profesional segera.`
                                             : `sistem mendeteksi luapan emosional yang sangat intens dalam persentase cuitan user. meskipun tidak merujuk pada gejala klinis spesifik, frekuensi nada negatif yang tinggi menunjukkan adanya distress berat yang memerlukan observasi lebih lanjut.`;
-                                    } else if (indicatedRatio > 0.25) {
+                                    } else if (aiCertaintyScore > 0.25) {
                                         return topIndicator
-                                            ? `dalam ${tweetCount} aktivitas terakhir, terdapat indikasi gejala "${topIndicator.label}" yang muncul secara sporadis dalam persentase moderat. intensitas risiko menunjukkan adanya tekanan psikologis awal yang perlu dipantau.`
+                                            ? `dalam ${tweetCount} aktivitas terakhir, terdapat indikasi gejala "${topIndicator.label}" yang muncul secara sporadis dalam tingkat keparahan moderat. intensitas risiko menunjukkan adanya tekanan psikologis awal yang perlu dipantau.`
                                             : `terdapat proporsi pola bahasa yang menunjukkan keresahan emosional umum. tidak ditemukan bukti klinis yang spesifik, namun fluktuasi ini mencerminkan kondisi psikologis yang sedang kurang stabil.`;
                                     } else {
-                                        return `berdasarkan pola linguistik dalam ${tweetCount} aktivitas terakhir, sistem tidak mendeteksi rasio indikator klinis yang menonjol (<25%). penggunaan bahasa cenderung netral, positif, dan tidak menunjukkan tekanan psikologis yang signifikan menurut kriteria DSM-5.`;
+                                        return `berdasarkan pola linguistik dalam ${tweetCount} aktivitas terakhir, sistem tidak mendeteksi indikator klinis yang menonjol (<25%). penggunaan bahasa cenderung netral, positif, dan tidak menunjukkan tekanan psikologis yang signifikan menurut kriteria DSM-5.`;
                                     }
                                 })()}
                             </p>
 
                             {/* Clinical Recommendation Block */}
-                            {indicatedRatio > 0.25 && (
+                            {aiCertaintyScore > 0.25 && (
                                 <div className="mt-6 bg-[#6C5CE7]/10 border border-[#6C5CE7]/20 p-5 rounded-2xl">
                                     <div className="flex items-center gap-2 text-[#74B9FF] font-black uppercase tracking-[0.1em] text-[10px] mb-2">
                                         <Info size={14} /> rekomendasi intervensi dasar
@@ -830,7 +830,7 @@ export function UserAnalysis({ data, onBack }) {
                                                         </div>
                                                         <div className="text-right">
                                                             <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-1">intensity</p>
-                                                            <p className={`text-[12px] font-black ${getRiskColor(item.score || 0)}`}>{((item.score || 0) * 100).toFixed(0)}%</p>
+                                                            <p className={`text-[12px] font-black uppercase ${getRiskColor(item.score || 0)}`}>{(item?.score || item?.confidence || 0) <= 0.25 ? 'AMAN' : (item?.score || item?.confidence || 0) <= 0.50 ? 'SEDIKIT TERINDIKASI' : 'TERINDIKASI'}</p>
                                                         </div>
                                                     </div>
                                                 </div>

@@ -10,7 +10,10 @@ import { Landing } from './pages/Landing';
 import { Cloud, Menu } from 'lucide-react';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('landing');
+  const [currentPage, setCurrentPage] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.has('highlight') ? 'dashboard' : 'landing';
+  });
   const [previousPage, setPreviousPage] = useState('dashboard'); // Track where we came from
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [analysisData, setAnalysisData] = useState(null);

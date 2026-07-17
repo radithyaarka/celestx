@@ -1,8 +1,8 @@
 export const dsmLexicon = [
   {
     id: 'depressed_mood',
-    name: 'Depressed Mood',
-    label: 'Suasana Hati Depresi',
+    name: 'Negative Mood',
+    label: 'Suasana Hati Negatif',
     advice: 'Tawarkan pendekatan empati personal, ajak komunikasi tanpa menghakimi.',
     keywords: [
       'depresi', 'sedih', 'kecewa', 'hampa', 'nangis', 'putus asa', 'suram', 'menderita', 'sakit hati', 'galau', 'terpuruk', 'pedih', 'pilu',

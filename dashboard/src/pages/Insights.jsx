@@ -27,13 +27,10 @@ export function Insights({ onScanComplete }) {
     return d.toISOString().split('T')[0];
   }).reverse();
 
-  const indicated = history.filter(h => h.label === 'INDICATED');
-  const highRisks = history.filter(h => h.confidence > 0.50);
-  const medRisks = history.filter(h => h.confidence > 0.25 && h.confidence <= 0.50);
 
   const getDSMTopics = () => {
     return [
-        { label: 'suasana hati depresi', keywords: ['sedih', 'sad', 'nangis', 'hopeless', 'kosong', 'empty', 'berduka'], count: 0, color: '#f43f5e', desc: 'perasaan sedih, hampa, atau putus asa hampir sepanjang hari.' },
+        { label: 'suasana hati negatif', keywords: ['sedih', 'sad', 'nangis', 'hopeless', 'kosong', 'empty', 'berduka'], count: 0, color: '#f43f5e', desc: 'perasaan sedih, hampa, atau putus asa hampir sepanjang hari.' },
         { label: 'anhedonia', keywords: ['bosan', 'bosen', 'interest', 'minat', 'gak seru', 'mati rasa'], count: 0, color: '#f97316', desc: 'penurunan minat atau kesenangan yang nyata pada hampir semua aktivitas.' },
         { label: 'nafsu makan', keywords: ['makan', 'lapar', 'kurus', 'diet', 'appetite', 'berat badan'], count: 0, color: '#f59e0b', desc: 'penurunan atau peningkatan berat badan/nafsu makan yang signifikan.' },
         { label: 'gangguan tidur', keywords: ['tidur', 'insomnia', 'begadang', 'ngantuk', 'mimpi buruk', 'malam'], count: 0, color: '#6366f1', desc: 'kesulitan tidur (insomnia) atau tidur berlebihan (hipersomnia) setiap hari.' },
@@ -45,15 +42,14 @@ export function Insights({ onScanComplete }) {
     ];
   };
 
-  const calculateTopics = () => {
+  const calculateTopics = (indicatedTweets) => {
       const topics = getDSMTopics();
-      indicated.forEach(item => {
+      indicatedTweets.forEach(item => {
           const text = item.text.toLowerCase();
           topics.forEach(t => { if (t.keywords.some(kw => text.includes(kw))) t.count++; });
       });
       return topics;
   };
-  const dsmTopics = calculateTopics();
 
   // Helper to detect language heuristically
   const detectLanguage = (text) => {
@@ -82,6 +78,11 @@ export function Insights({ onScanComplete }) {
 
   // Only consider ID tweets for population stats
   const idHistory = history.filter(h => detectLanguage(h.text) === 'id');
+  const indicated = idHistory.filter(h => h.label === 'INDICATED');
+  const highRisks = idHistory.filter(h => h.confidence > 0.50);
+  const medRisks = idHistory.filter(h => h.confidence > 0.25 && h.confidence <= 0.50);
+  const dsmTopics = calculateTopics(indicated);
+
   const totalSeverityScore = idHistory.reduce((a, b) => a + calculateItemSeverity(b.text), 0);
   
   // Denominator stays total history to maintain proportion, but only sum ID scores
@@ -180,9 +181,9 @@ export function Insights({ onScanComplete }) {
       {/* Hero Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         {[
-            { label: 'intensitas klinis', val: `${avgSeverity}%`, color: 'text-rose-500', icon: ShieldAlert, info: 'tingkat keparahan indikasi depresi secara keseluruhan dari semua data.' },
+            { label: 'tingkat keparahan', val: `${avgSeverity}%`, color: 'text-rose-500', icon: ShieldAlert, info: 'tingkat keparahan indikasi emosi negatif secara keseluruhan dari semua data.' },
             { label: 'peringatan kritis', val: highRisks.length, color: 'text-amber-500', icon: AlertCircle, info: 'jumlah tweet dengan tingkat risiko klinis yang sangat tinggi atau darurat.' },
-            { label: 'intensitas klinis', val: `${avgIntensity}%`, color: 'text-blue-500', icon: Brain, info: 'rata-rata kekuatan dan kejelasan gejala pada tweet yang terindikasi.' },
+            { label: 'tweet terindikasi', val: indicated.length, color: 'text-blue-500', icon: Brain, info: 'total tweet yang diklasifikasikan model AI sebagai terindikasi potensi depresi.' },
             { label: 'total arsip', val: totalScanned, color: 'text-emerald-500', icon: ActivityIcon, info: 'total seluruh data riwayat yang tersimpan dan digunakan untuk analisis ini.' }
         ].map((stat, i) => {
             const alignClass = i === 3 ? 'right-0 text-right' : (i === 0 ? 'left-0 text-left' : 'left-1/2 -translate-x-1/2 text-center');
@@ -287,7 +288,7 @@ export function Insights({ onScanComplete }) {
                                 <div className="h-full bg-slate-200 transition-all duration-1000" style={{ width: `${(otherFocusCount / (selfFocusCount + otherFocusCount || 1)) * 100}%` }} />
                             </div>
                         </div>
-                        <p className="text-[9px] text-slate-400 leading-relaxed italic mt-4 border-t border-black/5 pt-3">catatan: penderita depresi cenderung memiliki skor ruminasi tinggi pada kata 'aku'.</p>
+                        <p className="text-[9px] text-slate-400 leading-relaxed italic mt-4 border-t border-black/5 pt-3">catatan: individu dengan emosi negatif cenderung memiliki skor ruminasi tinggi pada kata 'aku'.</p>
                     </div>
                 </GlassCard>
 

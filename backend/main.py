@@ -233,6 +233,7 @@ def health_check():
         "routing": "dynamic",
         "text_model": "IndoBERTweet" if pipe is not None else "unavailable",
         "multimodal_model": "Fusion IndoBERTweet+ViT" if mm_model is not None else "unavailable",
+        "model": "Fusion IndoBERTweet+ViT (Multimodal)" if mm_model is not None else "IndoBERTweet"
     }
 
 @app.post("/predict")
@@ -249,7 +250,7 @@ async def predict_single(input_data: SingleTweetInput):
         symptom = get_symptom_label(input_data.text) if label == "INDICATED" else None
         return {
             "label": label,
-            "confidence": round(score, 4),
+            "score": round(score, 4),
             "text": input_data.text,
             "symptom": symptom,
             "mode": mode,
@@ -307,22 +308,28 @@ async def predict_batch(input_data: BatchTweetInput):
             "mode": res["mode"]
         })
 
-    K = 50
-    top_k_scores = sorted(all_scores, reverse=True)[:K]
-    avg_score = sum(top_k_scores) / len(top_k_scores) if top_k_scores else 0
+    global_avg = sum(all_scores) / len(all_scores) if all_scores else 0
+    
+    # Peak intensity = top 10 scores
+    peak_scores = sorted(all_scores, reverse=True)[:10]
+    peak_avg = sum(peak_scores) / len(peak_scores) if peak_scores else 0
+    
+    # Menghitung hybrid score sesuai metodologi Buku TA
+    hybrid_score = (global_avg + peak_avg) / 2
 
-    # Menghitung rasio indikasi depresi sesuai metodologi Buku TA
-    indicated_ratio = indicated_count / len(input_data.tweets) if input_data.tweets else 0
-
-    if indicated_ratio > 0.50: status_label = "POTENSI TINGGI"
-    elif indicated_ratio > 0.25: status_label = "MODERAT"
+    # Status berdasarkan hybrid score
+    if hybrid_score > 0.50: status_label = "POTENSI TINGGI"
+    elif hybrid_score > 0.25: status_label = "MODERAT"
     else: status_label = "STABIL"
+
+    indicated_ratio = indicated_count / len(input_data.tweets) if input_data.tweets else 0
 
     return {
         "total_tweets": len(input_data.tweets),
         "indicated_tweets": indicated_count,
         "indicated_ratio": round(float(indicated_ratio), 4),
-        "average_risk_score": round(float(avg_score), 4),
+        "hybrid_score": round(float(hybrid_score), 4),
+        "average_risk_score": round(float(hybrid_score), 4),
         "status": status_label,
         "details": details,
         "routing": "dynamic"

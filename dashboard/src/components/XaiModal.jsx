@@ -108,7 +108,7 @@ export function XaiModal({ xaiData, setXaiData }) {
                                         <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
                                             <div className="bg-[#2D3436] text-white text-[10px] font-black px-3 py-2 rounded-xl shadow-xl flex flex-col items-center gap-1 min-w-[80px]">
                                                 <span className="uppercase tracking-widest text-white/50">
-                                                    {item.score > 0.01 ? 'Depression' : item.score < -0.01 ? 'Stabilizer' : 'Neutral'}
+                                                    {item.score > 0.01 ? 'Negative Emotion' : item.score < -0.01 ? 'Stabilizer' : 'Neutral'}
                                                 </span>
                                                 <span className={item.score > 0.01 ? 'text-[#6C5CE7]' : item.score < -0.01 ? 'text-[#2ecc71]' : 'text-slate-300'}>
                                                     {item.score > 0 ? '+' : ''}{(item.score * 100).toFixed(1)}%
@@ -140,23 +140,23 @@ export function XaiModal({ xaiData, setXaiData }) {
 
                                     if (risk > 0.5 && drivers.length > 0) {
                                         const topWords = drivers.slice(0, 2).map(d => `"${d.word.replace(/##/g, '')}"`).join(' dan ');
-                                        if (variation === 0) return `Model Multimodal sangat yakin teks ini mengindikasikan depresi berat. Kemunculan kata ${topWords} menjadi pemicu utama yang melambungkan skor risiko secara drastis.`;
+                                        if (variation === 0) return `Model Multimodal sangat yakin teks ini mengindikasikan emosi negatif berat. Kemunculan kata ${topWords} menjadi pemicu utama yang melambungkan skor risiko secara drastis.`;
                                         if (variation === 1) return `Berdasarkan analisis bobot kata (SHAP), kalimat ini masuk kategori krisis. Model mendeteksi bahwa kata ${topWords} memiliki pengaruh emosional terburuk di dalam teks.`;
-                                        return `Tingkat keparahan klinis pada teks ini dinilai sangat tinggi oleh AI. Kata ${topWords} menjadi kontributor dominan yang merusak sentimen keseluruhan kalimat.`;
+                                        return `Tingkat indikasi negatif pada teks ini dinilai sangat tinggi oleh AI. Kata ${topWords} menjadi kontributor dominan yang merusak sentimen keseluruhan kalimat.`;
                                     } else if (risk > 0.15 && drivers.length > 0) {
                                         const topWords = drivers.slice(0, 1).map(d => `"${d.word.replace(/##/g, '')}"`).join('');
-                                        if (variation === 0) return `Terdapat indikasi depresi ringan hingga sedang pada kalimat ini. Kata ${topWords} memberikan sinyal negatif yang cukup menonjol hingga melewati ambang batas indikasi klinis model.`;
-                                        if (variation === 1) return `Model menangkap adanya nuansa depresif pada teks ini, dengan kata ${topWords} sebagai faktor utama yang membuat sentimen bergeser ke arah negatif.`;
-                                        return `Analisis menunjukkan bahwa kalimat ini tidak sepenuhnya stabil. Penggunaan kata ${topWords} menjadi alasan utama mengapa model memunculkan peringatan klinis (alert).`;
+                                        if (variation === 0) return `Terdapat indikasi emosi negatif ringan hingga sedang pada kalimat ini. Kata ${topWords} memberikan sinyal negatif yang cukup menonjol hingga melewati ambang batas model.`;
+                                        if (variation === 1) return `Model menangkap adanya nuansa emosi negatif pada teks ini, dengan kata ${topWords} sebagai faktor utama yang membuat sentimen bergeser ke arah negatif.`;
+                                        return `Analisis menunjukkan bahwa kalimat ini tidak sepenuhnya stabil. Penggunaan kata ${topWords} menjadi alasan utama mengapa model memunculkan peringatan (alert).`;
                                     } else if (risk <= 0.15 && stabilizers.length > 0) {
                                         const topWords = stabilizers.slice(0, 1).map(d => `"${d.word.replace(/##/g, '')}"`).join('');
                                         if (variation === 0) return `Teks diklasifikasikan sebagai stabil. Penggunaan kata bernuansa netral/penstabil seperti ${topWords} berhasil menekan persentase risiko hingga berada di zona aman.`;
-                                        if (variation === 1) return `Tidak ada indikasi depresi serius yang terdeteksi. Malahan, kata ${topWords} menetralkan emosi dalam kalimat ini sehingga model menganggapnya sebagai cuitan biasa.`;
-                                        return `Skor risiko klinis sangat rendah. Model menilai bahwa kata ${topWords} berperan besar dalam menjaga stabilitas emosional teks ini.`;
+                                        if (variation === 1) return `Tidak ada indikasi emosi negatif yang serius yang terdeteksi. Malahan, kata ${topWords} menetralkan emosi dalam kalimat ini sehingga model menganggapnya sebagai cuitan biasa.`;
+                                        return `Skor indikasi negatif sangat rendah. Model menilai bahwa kata ${topWords} berperan besar dalam menjaga stabilitas emosional teks ini.`;
                                     } else if (risk <= 0.15) {
-                                        if (variation === 0) return `Model tidak mendeteksi adanya pola leksikal depresif yang spesifik pada teks ini, sehingga dianggap sebagai interaksi wajar.`;
-                                        if (variation === 1) return `Analisis SHAP menunjukkan bahwa teks ini sangat datar/netral secara emosional. Tidak ada kata yang memicu indikator depresi.`;
-                                        return `Kalimat ini tergolong normal dan aman. Model tidak menemukan adanya kata-kata yang mengarah pada gejala klinis depresi.`;
+                                        if (variation === 0) return `Model tidak mendeteksi adanya pola leksikal negatif yang spesifik pada teks ini, sehingga dianggap sebagai interaksi wajar.`;
+                                        if (variation === 1) return `Analisis SHAP menunjukkan bahwa teks ini sangat datar/netral secara emosional. Tidak ada kata yang memicu indikator emosi negatif.`;
+                                        return `Kalimat ini tergolong normal dan aman. Model tidak menemukan adanya kata-kata yang mengarah pada gejala emosi negatif.`;
                                     }
                                     return `Teks memiliki sinyal emosi yang bercampur, namun secara keseluruhan model menyimpulkan tingkat risiko sebesar ${(risk*100).toFixed(0)}%.`;
                                 })()}
@@ -167,7 +167,7 @@ export function XaiModal({ xaiData, setXaiData }) {
                     {/* Summary Grid */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="p-6 bg-rose-50/50 rounded-3xl border border-rose-100">
-                            <h4 className="text-xs font-black uppercase tracking-widest text-rose-400 mb-4 flex items-center gap-2"><TrendingUp size={14} /> Top Depression Drivers</h4>
+                            <h4 className="text-xs font-black uppercase tracking-widest text-rose-400 mb-4 flex items-center gap-2"><TrendingUp size={14} /> Top Negative Emotion Drivers</h4>
                             <div className="space-y-3">
                                 {[...xaiData.explanation]
                                     .filter(item => item.score > 0.05)

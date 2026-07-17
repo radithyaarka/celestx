@@ -306,7 +306,7 @@ export function History({ onNavigate, onScanComplete }) {
                 <div className="flex flex-row lg:flex-col items-center justify-center gap-6 shrink-0 lg:border-l lg:pl-10 lg:min-w-[200px] bg-slate-50/50 -m-8 lg:m-0 p-8 lg:p-0">
                   <div className="text-center flex-1 lg:flex-none">
                     <p className="text-[10px] text-slate-400 uppercase tracking-widest font-black mb-1.5">intensity</p>
-                    <p className={`font-black text-5xl ${getRiskColor(item.confidence)}`}>{(item.confidence * 100).toFixed(0)}<span className="text-2xl">%</span></p>
+                    <p className={`font-black text-2xl uppercase ${getRiskColor(item.confidence)}`}>{(item.confidence || item.score || 0) <= 0.25 ? 'AMAN' : (item.confidence || item.score || 0) <= 0.50 ? 'SEDIKIT TERINDIKASI' : 'TERINDIKASI'}</p>
                   </div>
 
                   <div className="w-full max-w-[160px] lg:max-w-none">

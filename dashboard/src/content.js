@@ -104,7 +104,7 @@ function showToast(count, detectedTexts = []) {
         </div>
         <div style="flex-grow: 1;">
             <p style="margin: 0; font-family: Georgia, serif; font-style: italic; font-weight: 900; color: #2D3436; font-size: 16px; letter-spacing: -0.02em;">celestx.</p>
-            <p style="margin: 2px 0 0 0; color: #636E72; font-size: 10px; font-weight: 600; line-height: 1.4; text-transform: lowercase;">terdeteksi <span style="color: #6C5CE7; font-weight: 800;">${count} tweet</span> terindikasi depresi.</p>
+            <p style="margin: 2px 0 0 0; color: #636E72; font-size: 10px; font-weight: 600; line-height: 1.4; text-transform: lowercase;">terdeteksi <span style="color: #6C5CE7; font-weight: 800;">${count} tweet</span> terindikasi emosi negatif.</p>
         </div>
         <button id="celestx-see-btn" style="background: #6C5CE7; color: white; border: none; padding: 8px 16px; border-radius: 10px; font-weight: 900; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3);">
             see
@@ -231,8 +231,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const extract = () => {
             const tweets = extractTweets();
             tweets.forEach(t => {
-                if (!scrapedTweetsMap.has(t.text)) {
-                    scrapedTweetsMap.set(t.text, t);
+                const uniqueKey = `${t.text}|${t.timestamp || ''}|${t.imageUrl || ''}`;
+                if (!scrapedTweetsMap.has(uniqueKey)) {
+                    scrapedTweetsMap.set(uniqueKey, t);
                 }
             });
         };
@@ -374,9 +375,16 @@ function startAutoScan() {
         if (autoScanTimer) clearInterval(autoScanTimer);
         autoScanTimer = setInterval(() => {
             const tweets = extractTweets();
-            const newTweets = tweets.filter(t => t.text && !seenTweets.has(t.text));
+            const newTweets = tweets.filter(t => {
+                if (!t.text) return false;
+                const uniqueKey = `${t.text}|${t.timestamp || ''}|${t.imageUrl || ''}`;
+                return !seenTweets.has(uniqueKey);
+            });
             if (newTweets.length > 0) {
-                newTweets.forEach(t => seenTweets.add(t.text));
+                newTweets.forEach(t => {
+                    const uniqueKey = `${t.text}|${t.timestamp || ''}|${t.imageUrl || ''}`;
+                    seenTweets.add(uniqueKey);
+                });
                 chrome.runtime.sendMessage({ action: 'auto_scan_result', tweets: newTweets });
             }
         }, Math.max(1000, interval)); // Safety minimum of 1s

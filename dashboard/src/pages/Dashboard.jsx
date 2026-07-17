@@ -198,7 +198,7 @@ export function Dashboard({ onNavigate }) {
                     <div className="relative group/info">
                       <Info size={10} className="text-slate-300" />
                       <div className="absolute bottom-full left-0 mb-2 w-40 p-2.5 bg-[#2D3436] text-white text-[9px] font-medium leading-relaxed rounded-xl opacity-0 group-hover/info:opacity-100 transition-all pointer-events-none z-[100] shadow-2xl border border-white/10 lowercase">
-                        tweet indonesia dengan indikasi depresi.
+                        tweet indonesia dengan indikasi emosi negatif.
                       </div>
                     </div>
                   </div>
@@ -249,7 +249,7 @@ export function Dashboard({ onNavigate }) {
                 <div className="relative group/info">
                   <Info size={12} className="text-slate-300" />
                   <div className="absolute bottom-full left-0 mb-2 w-48 p-3 bg-[#2D3436] text-white text-[10px] font-medium leading-relaxed rounded-xl opacity-0 group-hover/info:opacity-100 transition-all pointer-events-none z-[100] shadow-2xl border border-white/10 lowercase text-left">
-                    persentase indikasi depresi dari total populasi.
+                    persentase indikasi emosi negatif dari total populasi.
                   </div>
                 </div>
               </div>
@@ -279,7 +279,7 @@ export function Dashboard({ onNavigate }) {
                 <div className="relative group/info">
                   <Info size={12} className="text-slate-300" />
                   <div className="absolute bottom-full right-0 mb-2 w-48 p-3 bg-[#2D3436] text-white text-[10px] font-medium leading-relaxed rounded-xl opacity-0 group-hover/info:opacity-100 transition-all pointer-events-none z-[100] shadow-2xl border border-white/10 lowercase text-right">
-                    rata-rata kekuatan indikasi depresi dari seluruh data.
+                    rata-rata kekuatan indikasi emosi negatif dari seluruh data.
                   </div>
                 </div>
               </div>
@@ -395,7 +395,7 @@ export function Dashboard({ onNavigate }) {
                         </div>
                         <div className="text-right shrink-0">
                           <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-0.5">intensity</p>
-                          <p className={`text-2xl font-black leading-none ${getRiskColor(item.confidence)}`}>{(item.confidence * 100).toFixed(0)}%</p>
+                          <p className={`text-[12px] font-black leading-none uppercase ${getRiskColor(item.confidence)}`}>{(item.confidence || item.score || 0) <= 0.25 ? 'AMAN' : (item.confidence || item.score || 0) <= 0.50 ? 'SEDIKIT TERINDIKASI' : 'TERINDIKASI'}</p>
                         </div>
                       </div>
 
