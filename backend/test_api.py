@@ -16,7 +16,6 @@ try:
     explain_data = {"text": "saya merasa sangat sedih hari ini"}
     response = requests.post(explain_url, data=json.dumps(explain_data), headers=headers)
     print(response.status_code)
-    # Just print first few words of explanation to avoid huge output
     res_json = response.json()
     print(f"Text: {res_json['text']}")
     print(f"Explanation (first 3): {res_json['explanation'][:3]}")

@@ -18,7 +18,6 @@ export function UserAnalysis({ data, onBack }) {
     const [use14DayWindow, setUse14DayWindow] = useState(false);
     const [showIndicatedOnly, setShowIndicatedOnly] = useState(false);
 
-    // xAI State
     const [xaiData, setXaiData] = useState(null);
     const [isXaiLoading, setIsXaiLoading] = useState(null);
 
@@ -45,7 +44,6 @@ export function UserAnalysis({ data, onBack }) {
         if (scrollContainer) scrollContainer.scrollTo(0, 0);
     }, []);
 
-    // Helper to detect language heuristically
     const detectLanguage = (text) => {
         if (!text) return 'id';
         const enWords = /\b(the|is|are|in|to|of|for|with|and|on|at|i|me|my|you|your|he|she|it)\b/gi;
@@ -89,11 +87,9 @@ export function UserAnalysis({ data, onBack }) {
     const summaryData = data.summary || {};
     const rawDetailsData = Array.isArray(data.details) ? data.details : [];
 
-    // Jendela 14 Hari DSM-5 Logic
     const detailsData = useMemo(() => {
         if (!use14DayWindow || rawDetailsData.length === 0) return rawDetailsData;
 
-        // Find most recent tweet date in the dataset
         const getTs = (d) => new Date(d.date || d.timestamp || d.created_at || d.time || 0).getTime();
         const validTimestamps = rawDetailsData.map(getTs).filter(ts => !isNaN(ts) && ts > 0);
 
@@ -101,7 +97,6 @@ export function UserAnalysis({ data, onBack }) {
 
         const maxTs = Math.max(...validTimestamps);
 
-        // 14 days in milliseconds
         const thresholdTs = maxTs - (14 * 24 * 60 * 60 * 1000);
 
         return rawDetailsData.filter(d => getTs(d) >= thresholdTs);
@@ -115,23 +110,19 @@ export function UserAnalysis({ data, onBack }) {
         return indicatedCount / idTweets.length;
     }, [detailsData]);
 
-    // AI Certainty / Linguistic Intensity (Hybrid Risk Model - Global + Peak)
     const aiCertaintyScore = useMemo(() => {
         const idTweets = detailsData.filter(t => detectLanguage(t.text) === 'id');
         if (idTweets.length === 0) return 0;
 
-        // 1. Global Average (Total ID Score / Total Scanned Tweets)
         const totalIdScore = idTweets.reduce((acc, curr) => acc + (Number(curr.score || curr.confidence) || 0), 0);
         const globalAvg = totalIdScore / (idTweets.length || 1);
 
-        // 2. Peak Average (Average of Top 10 ID tweets)
         const sortedScores = idTweets
             .map(d => Number(d.score || d.confidence || 0))
             .sort((a, b) => b - a);
         const topScores = sortedScores.slice(0, 10);
         const peakAvg = topScores.reduce((a, b) => a + b, 0) / (topScores.length || 1);
 
-        // 3. Hybrid Result
         return (globalAvg + peakAvg) / 2;
     }, [detailsData]);
     const userAvatar = userData.avatarUrl || userData.profile_image_url || userData.profileImageUrl;
@@ -145,7 +136,6 @@ export function UserAnalysis({ data, onBack }) {
             const text = (tweet.text || "").toLowerCase();
             const isIndicated = ((Number(tweet.score) || 0) >= 0.25);
 
-            // Only search for symptoms if the AI actually indicates risk
             if (isIndicated) {
                 let matchedId = null;
                 for (const category of dsmLexicon) {
@@ -162,7 +152,6 @@ export function UserAnalysis({ data, onBack }) {
                     tweet.matchedLabel = finalLabel;
                 }
             } else {
-                // If not indicated by AI, ensure it doesn't show a symptom label
                 tweet.matchedLabel = null;
             }
         });
@@ -204,7 +193,6 @@ export function UserAnalysis({ data, onBack }) {
             const text = item?.text || "";
             const isRetweet = text.startsWith('RT ') || item?.isRetweet;
 
-            // Language Filter
             const lang = detectLanguage(text);
             if (langFilter === 'id' && lang === 'en') return false;
 
@@ -585,7 +573,6 @@ export function UserAnalysis({ data, onBack }) {
                         </div>
 
                         {(() => {
-                            // Robust sorting helper
                             const getTs = (item) => {
                                 const d = item?.date || item?.timestamp || item?.created_at || item?.time || 0;
                                 return new Date(d).getTime();

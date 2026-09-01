@@ -26,7 +26,6 @@ import {
 export function History({ onNavigate, onScanComplete }) {
   const [history, setHistory] = useState([]);
   
-  // xAI State
   const [xaiData, setXaiData] = useState(null);
   const [isXaiLoading, setIsXaiLoading] = useState(null);
 
@@ -51,7 +50,6 @@ export function History({ onNavigate, onScanComplete }) {
   const [scanningHandle, setScanningHandle] = useState(null);
   const [settings, setSettings] = useState({ confidenceThreshold: 15 });
 
-  // Modal state: item yang akan di-deep-scan setelah konfirmasi
   const [deepScanTarget, setDeepScanTarget] = useState(null);
 
   useEffect(() => {
@@ -91,7 +89,6 @@ export function History({ onNavigate, onScanComplete }) {
     return 'text-rose-500';
   };
 
-  // Dipanggil setelah user konfirmasi di modal
   const handleDeepScanConfirm = async (targetUser) => {
     const item = targetUser._historyItem; // objek history asli
     const rawHandle = (item.handle || '').replace('@', '');

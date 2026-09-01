@@ -50,19 +50,16 @@ export function Users({ onSelectUser }) {
     const handle = targetUser.handle.replace('@', '').trim();
     setScanningHandle(handle);
     
-    // 1. Open Twitter Tab
     chrome.tabs.create({ url: `https://x.com/${handle}`, active: true }, (tab) => {
         const listener = (tabId, info) => {
             if (tabId === tab.id && info.status === 'complete') {
                 chrome.tabs.onUpdated.removeListener(listener);
                 
-                // 2. Wait for profile to load, then send scrape message
                 setTimeout(() => {
                     chrome.tabs.sendMessage(tab.id, { 
                         action: 'deep_scrape_profile',
                         targetDepth: settings?.scanDepth || 50 
                     }, async (response) => {
-                        // Close tab after scraping
                         chrome.tabs.remove(tab.id);
                         
                         if (!response || !response.tweets || response.tweets.length === 0) {
@@ -71,7 +68,6 @@ export function Users({ onSelectUser }) {
                             return;
                         }
 
-                        // 3. Predict via Backend
                         try {
                             const tweetData = response.tweets.map(t => ({
                                 text: t.text,
@@ -88,8 +84,6 @@ export function Users({ onSelectUser }) {
                             });
                             const result = await res.json();
 
-                            // 4. Save & Navigate
-                            // Filter for an original tweet (not a retweet) to get correct user metadata
                             const originalTweet = response.tweets.find(t => !t.isRetweet) || response.tweets[0];
                             
                             const scanData = {
@@ -205,25 +199,20 @@ export function Users({ onSelectUser }) {
         ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {analyzedUsers.map((scan, idx) => {
-            // Helper to detect language heuristically
             const detectLanguage = (text) => {
                 if (!text) return 'id';
-                // 1. Dictionary Check
                 const enWords = /\b(the|is|are|in|to|of|for|with|and|on|at|i|me|my|you|your|he|she|it|this|that|these|those|what|when|where|why|how|do|does|did|but|or|so|because|as|until|while|about|against|between|into|through|during|before|after|above|below|from|up|down|out|off|over|under|again|further|then|once|here|there|all|any|both|each|few|more|most|other|some|such|no|nor|not|only|own|same|than|too|very|can|will|just|don|should|now|lol|lmao|stfu|idk|imo|omg|wtf|bro|dude|shit|fuck|damn|rn|fr|tbh)\b/gi;
                 const idWords = /\b(yang|di|ke|dari|ini|itu|dan|ada|saya|aku|kamu|lo|lu|gw|gue|gwa|bgt|banget|ga|gk|gak|ngga|nggak|tidak|aja|saja|udah|sdh|sudah|kalo|kalau|kl|klo|sih|dong|nih|tuh|kok|wkwk|haha|wk|anjir|njir|anjing|bgst|bangsat|tolol|bego|goblok|gimana|gmn|gitu|gtu|gt|gini|kenapa|knp|siapa|sapa|apa|apaan|tapi|tpi|karena|krn|pas|waktu|lg|lagi|sama|sm|buat|bwt|dgn|dengan|kyk|kayak|kek|bisa|bsa|jg|juga|mah|teh|atuh|euy|nya|ya|iya|y|g|blm|belum|coba|cb|terus|trs|abis|habis|deh|untuk|utk)\b/gi;
                 
-                // 2. Affix/Pattern Check (Heuristics)
                 const enAffixes = /\b\w{3,}(tion|ing|ed|ly|ment|ness|ity|ous|ive|able|ible|less|ful)\b/gi;
                 const idAffixes = /\b(meng|meny|peng|peny|diper|keber|keter)\w{3,}|\w{3,}(nya|lah|kah|pun)\b/gi;
 
                 const enScore = (text.match(enWords) || []).length + (text.match(enAffixes) || []).length;
                 const idScore = (text.match(idWords) || []).length + (text.match(idAffixes) || []).length;
                 
-                // Exact tie goes to ID (Indonesian focus)
                 return enScore > idScore ? 'en' : 'id';
             };
 
-            // Ganti Hybrid Model dengan Data Mentah (Indicated Counts)
             const idTweets = scan.details?.filter(d => {
                 const text = d.text || "";
                 const enWords = /\b(the|is|are|in|to|of|for|with|and|on|at|i|me|my|you|your|he|she|it)\b/gi;
@@ -237,7 +226,6 @@ export function Users({ onSelectUser }) {
             const indicatedCount = idTweets.filter(d => (Number(d.score) || 0) >= 0.25).length || 0;
             const status = scan.summary?.status || 'STABIL';
             
-            // Tentukan warna status
             const getStatusColor = (stat) => {
                 if (stat === 'POTENSI TINGGI') return 'text-rose-500 bg-rose-500/10 border-rose-500/20';
                 if (stat === 'MODERAT') return 'text-amber-500 bg-amber-500/10 border-amber-500/20';

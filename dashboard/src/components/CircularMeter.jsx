@@ -6,7 +6,6 @@ export function CircularMeter({ score, label, customColor }) {
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (score * circumference);
 
-  // Default color logic if no customColor is provided
   const color = customColor || (
     score <= 0.15 ? '#10B981' : // Emerald
     score <= 0.50 ? '#0EA5E9' : // Sky

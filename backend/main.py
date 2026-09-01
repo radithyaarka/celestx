@@ -1,7 +1,6 @@
 import uvicorn
 import os
 
-# Prevent HuggingFace from attempting to connect to the internet
 os.environ["HF_HUB_OFFLINE"] = "1"
 
 from fastapi import FastAPI, HTTPException
@@ -34,7 +33,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ─── MULTIMODAL MODEL ARCHITECTURE ──────────────────────────────────────────
 class MultimodalDepressionModel(nn.Module):
     def __init__(self, text_config: BertConfig, img_config: ViTConfig):
         super().__init__()
@@ -58,7 +56,6 @@ class MultimodalDepressionModel(nn.Module):
         fused  = torch.cat([text_feat, img_feat], dim=-1)
         return self.classifier(fused)
 
-# ─── CONFIG ─────────────────────────────────────────────────────────────────
 MODEL_PTH_PATH  = "./best_multimodal_model.pth"
 MODEL_TEXT_PATH = "./model_ta"
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -81,14 +78,18 @@ image_transforms = transforms.Compose([
     transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
 ])
 
-# ─── GLOBAL OBJECTS ─────────────────────────────────────────────────────────
 pipe          = None   # HF pipeline (IndoBERTweet text-only)
 mm_model      = None   # Multimodal .pth
 mm_tokenizer  = None   
 explainer     = None   
 sbert_model   = None
 
-# ─── LOAD MODELS ────────────────────────────────────────────────────────────
+try:
+    from unzip_models import auto_extract_if_needed
+    auto_extract_if_needed()
+except Exception as extract_err:
+    print(f"INFO: Checking model extraction: {extract_err}")
+
 try:
     print("LOADING: Memuat pipeline IndoBERTweet (fallback text-only)...")
     hf_device = 0 if torch.cuda.is_available() else -1
@@ -115,17 +116,12 @@ try:
     print("LOADING: Memuat model fusion multimodal (.pth)...")
     mm_tokenizer = BertTokenizer.from_pretrained(MODEL_TEXT_PATH, local_files_only=True)
     
-    # Alokasikan memori CPU biasa terlebih dahulu
     mm_model = MultimodalDepressionModel(text_cfg, vit_cfg)
         
-    # Gunakan mmap=True agar file .pth tidak diload dua kali ke RAM
     state_dict = torch.load(MODEL_PTH_PATH, map_location=device, weights_only=False, mmap=True)
     
-    # assign=True akan me-replace parameter CPU lama dengan mmap memory langsung
-    # (Memory lama akan otomatis di-GC, sehingga peak RAM tetap 1x ukuran model!)
     mm_model.load_state_dict(state_dict, assign=True)
     
-    # Cleanup memory
     del state_dict
     gc.collect()
     
@@ -164,7 +160,6 @@ except Exception as e:
     print(f"ERROR: Gagal memuat Indo-SBERT: {e}")
     get_symptom_label = lambda x: None
 
-# ─── INFERENCE HELPERS ───────────────────────────────────────────────────────
 
 def load_and_preprocess_image(url: str):
     try:
@@ -208,7 +203,6 @@ def run_multimodal(texts: List[str], image_urls: List[str], threshold: float = 0
     scores = probs[:, 1].cpu().numpy()
     return [(float(s), "INDICATED" if s > threshold else "NORMAL") for s in scores]
 
-# ─── SKEMA DATA ──────────────────────────────────────────────────────────────
 
 class TweetItem(BaseModel):
     text: str
@@ -223,7 +217,6 @@ class BatchTweetInput(BaseModel):
     tweets: List[TweetItem]
     threshold: float = 0.30
 
-# ─── ENDPOINTS ───────────────────────────────────────────────────────────────
 
 @app.get("/")
 @app.get("/health")
@@ -239,7 +232,6 @@ def health_check():
 @app.post("/predict")
 async def predict_single(input_data: SingleTweetInput):
     try:
-        # DYNAMIC ROUTING
         if input_data.imageUrl:
             score, label = run_multimodal([input_data.text], [input_data.imageUrl], input_data.threshold)[0]
             mode = "multimodal"
@@ -271,14 +263,12 @@ async def predict_batch(input_data: BatchTweetInput):
     all_results = [None] * len(input_data.tweets)
     
     try:
-        # Process text-only batch
         if text_items:
             texts = [t.text for i, t in text_items]
             res_text = run_text(texts, input_data.threshold)
             for idx, (orig_idx, _) in enumerate(text_items):
                 all_results[orig_idx] = {"score": res_text[idx][0], "label": res_text[idx][1], "mode": "text"}
                 
-        # Process multimodal batch
         if mm_items:
             texts = [t.text for i, t in mm_items]
             urls = [t.imageUrl for i, t in mm_items]
@@ -310,14 +300,11 @@ async def predict_batch(input_data: BatchTweetInput):
 
     global_avg = sum(all_scores) / len(all_scores) if all_scores else 0
     
-    # Peak intensity = top 10 scores
     peak_scores = sorted(all_scores, reverse=True)[:10]
     peak_avg = sum(peak_scores) / len(peak_scores) if peak_scores else 0
     
-    # Menghitung hybrid score sesuai metodologi Buku TA
     hybrid_score = (global_avg + peak_avg) / 2
 
-    # Status berdasarkan hybrid score
     if hybrid_score > 0.50: status_label = "POTENSI TINGGI"
     elif hybrid_score > 0.25: status_label = "MODERAT"
     else: status_label = "STABIL"

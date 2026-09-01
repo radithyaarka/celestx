@@ -20,7 +20,6 @@ export function Insights({ onScanComplete }) {
     });
   }, []);
 
-  // ─── Data Calculations ──────────────────────────────────────────────────────
   const last7Days = [...Array(7)].map((_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - i);
@@ -51,21 +50,17 @@ export function Insights({ onScanComplete }) {
       return topics;
   };
 
-  // Helper to detect language heuristically
   const detectLanguage = (text) => {
     if (!text) return 'id';
-    // 1. Dictionary Check
     const enWords = /\b(the|is|are|in|to|of|for|with|and|on|at|i|me|my|you|your|he|she|it|this|that|these|those|what|when|where|why|how|do|does|did|but|or|so|because|as|until|while|about|against|between|into|through|during|before|after|above|below|from|up|down|out|off|over|under|again|further|then|once|here|there|all|any|both|each|few|more|most|other|some|such|no|nor|not|only|own|same|than|too|very|can|will|just|don|should|now|lol|lmao|stfu|idk|imo|omg|wtf|bro|dude|shit|fuck|damn|rn|fr|tbh)\b/gi;
     const idWords = /\b(yang|di|ke|dari|ini|itu|dan|ada|saya|aku|kamu|lo|lu|gw|gue|gwa|bgt|banget|ga|gk|gak|ngga|nggak|tidak|aja|saja|udah|sdh|sudah|kalo|kalau|kl|klo|sih|dong|nih|tuh|kok|wkwk|haha|wk|anjir|njir|anjing|bgst|bangsat|tolol|bego|goblok|gimana|gmn|gitu|gtu|gt|gini|kenapa|knp|siapa|sapa|apa|apaan|tapi|tpi|karena|krn|pas|waktu|lg|lagi|sama|sm|buat|bwt|dgn|dengan|kyk|kayak|kek|bisa|bsa|jg|juga|mah|teh|atuh|euy|nya|ya|iya|y|g|blm|belum|coba|cb|terus|trs|abis|habis|deh|untuk|utk)\b/gi;
     
-    // 2. Affix/Pattern Check (Heuristics)
     const enAffixes = /\b\w{3,}(tion|ing|ed|ly|ment|ness|ity|ous|ive|able|ible|less|ful)\b/gi;
     const idAffixes = /\b(meng|meny|peng|peny|diper|keber|keter)\w{3,}|\w{3,}(nya|lah|kah|pun)\b/gi;
 
     const enScore = (text.match(enWords) || []).length + (text.match(enAffixes) || []).length;
     const idScore = (text.match(idWords) || []).length + (text.match(idAffixes) || []).length;
     
-    // Exact tie goes to ID (Indonesian focus)
     return enScore > idScore ? 'en' : 'id';
   };
 
@@ -76,7 +71,6 @@ export function Insights({ onScanComplete }) {
       return (triggered / 9);
   };
 
-  // Only consider ID tweets for population stats
   const idHistory = history.filter(h => detectLanguage(h.text) === 'id');
   const indicated = idHistory.filter(h => h.label === 'INDICATED');
   const highRisks = idHistory.filter(h => h.confidence > 0.50);
@@ -85,18 +79,15 @@ export function Insights({ onScanComplete }) {
 
   const totalSeverityScore = idHistory.reduce((a, b) => a + calculateItemSeverity(b.text), 0);
   
-  // Denominator stays total history to maintain proportion, but only sum ID scores
   const avgSeverity = history.length > 0 ? ((totalSeverityScore / history.length) * 100).toFixed(1) : 0;
   
   const intensityTimeline = last7Days.map(date => {
       const dayHistory = history.filter(h => h.date && h.date.startsWith(date));
       if (dayHistory.length === 0) return 0;
       
-      // Numerator: only sum confidence of ID tweets
       const dayIdTweets = dayHistory.filter(h => detectLanguage(h.text) === 'id');
       const dayTotalConfidence = dayIdTweets.reduce((a, b) => a + (b.confidence || 0), 0);
       
-      // Denominator: total tweets for that day
       return dayTotalConfidence / dayHistory.length;
   });
 
